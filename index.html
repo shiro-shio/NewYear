@@ -237,7 +237,7 @@ class Firework {
             size: 3.5,
             map: particleTexture,
             transparent: true,
-            blending: THREE.NormalBlending,
+            blending: THREE.AdditiveBlending,
             depthWrite: false
         });
         this.rocket = new THREE.Points(geo, mat);
@@ -460,7 +460,7 @@ function animate() {
     updateGlobalTrails();
     renderer.clear();
     renderer.render(scene, camera);
-    composer.render();
+    //composer.render();
 }
 animate();
 
