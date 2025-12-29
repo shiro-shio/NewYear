@@ -2,19 +2,25 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>2025 Anime Fireworks (Trails & Shapes)</title>
+<title>2026 Sharp Anime Fireworks</title>
 <style>
     body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', sans-serif; }
     #ui-container {
         position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
         text-align: center; z-index: 100; pointer-events: none;
-        color: rgba(255,255,255,0.9); text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        color: rgba(255,255,255,0.9); text-shadow: 0 0 5px rgba(0,0,0,0.5);
+        width: 90%;
     }
-    #countdown { font-size: 4rem; font-weight: 200; letter-spacing: 2px; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
-    #controls { pointer-events: auto; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); padding: 10px 20px; border-radius: 30px; display: inline-block; border: 1px solid rgba(255,255,255,0.2); }
-    button { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 15px; border-radius: 15px; cursor: pointer; transition: 0.3s; margin: 0 5px; }
-    button:hover { background: rgba(255,255,255,0.2); border-color: white; }
-    .label { font-size: 0.8rem; margin-right: 10px; opacity: 0.8; }
+    #countdown { font-size: 3rem; font-weight: 200; letter-spacing: 2px; margin-bottom: 15px; font-variant-numeric: tabular-nums; }
+    #controls { pointer-events: auto; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); padding: 15px 20px; border-radius: 20px; display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 8px; border: 1px solid rgba(255,255,255,0.15); }
+    button { background: transparent; border: 1px solid rgba(255,255,255,0.5); color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; white-space: nowrap; }
+    button:hover { background: rgba(255,255,255,0.25); border-color: white; transform: translateY(-2px); }
+    button:active { transform: translateY(0px); }
+    .label { width: 100%; font-size: 0.8rem; opacity: 0.7; margin-bottom: 8px; display: block; }
+    @media (max-width: 600px) {
+        #countdown { font-size: 2rem; }
+        button { padding: 6px 12px; font-size: 0.8rem; }
+    }
 </style>
 
 <script type="importmap">
@@ -31,11 +37,12 @@
 <div id="ui-container">
     <div id="countdown">00:00:00</div>
     <div id="controls">
-        <span class="label">2025 動漫風格煙火</span>
+        <span class="label">2026 清晰版動漫煙火控制台</span>
         <button onclick="launchManual('random')">🚀 隨機發射</button>
         <button onclick="launchManual('heart')">❤️ 愛心</button>
-        <button onclick="launchManual('text', '2025')">🔢 2025</button>
-        <button onclick="launchManual('text', 'HAPPY')">✨ HAPPY</button>
+        <button onclick="launchManual('ring')">🪐 土星環</button>
+        <button onclick="launchManual('text', '2026 新年快樂')">🧧 2026 新年快樂</button>
+        <button onclick="launchManual('text', 'Happy New Year')">🎉 Happy New Year</button>
     </div>
 </div>
 
@@ -46,26 +53,30 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 // ==========================================
-// 1. 場景與後處理設定
+// 1. 場景與後處理設定 (調整清晰度)
 // ==========================================
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x050505, 0.002);
+scene.fog = new THREE.FogExp2(0x050505, 0.0015); // 稍微減少霧氣
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 0, 120);
-camera.lookAt(0, 30, 0);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+// 將相機拉遠一點，以容納更廣的範圍
+camera.position.set(0, 0, 160);
+camera.lookAt(0, 40, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.toneMapping = THREE.ReinhardToneMapping;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 稍微降低像素比以提高效能
+renderer.toneMapping = THREE.ACESFilmicToneMapping; // 改用更有電影感的 Tone Mapping
+renderer.toneMappingExposure = 1.2;
 document.body.appendChild(renderer.domElement);
 
 const renderScene = new RenderPass(scene, camera);
+
+// --- 關鍵修改：調整 Bloom 參數以獲得清晰感 ---
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-bloomPass.strength = 2.5; 
-bloomPass.radius = 0.5;
-bloomPass.threshold = 0.1;
+bloomPass.strength = 2.2;   // 強度維持較高
+bloomPass.radius = 0.1;     // [關鍵] 極小的半徑，讓光暈緊貼粒子，產生銳利感
+bloomPass.threshold = 0.15; // 稍微提高閾值，只讓夠亮的地方發光
 
 const composer = new EffectComposer(renderer);
 composer.addPass(renderScene);
@@ -76,14 +87,16 @@ composer.addPass(bloomPass);
 // ==========================================
 function createGlowTexture() {
     const canvas = document.createElement('canvas');
-    canvas.width = 32; canvas.height = 32;
+    canvas.width = 64; canvas.height = 64; // 稍微加大貼圖解析度
     const ctx = canvas.getContext('2d');
-    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    // 調整漸層讓中心更實心，邊緣衰減更快
     gradient.addColorStop(0, 'rgba(255,255,255,1)');
-    gradient.addColorStop(0.4, 'rgba(255,255,255,0.3)'); 
+    gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');
+    gradient.addColorStop(0.5, 'rgba(255,255,255,0.2)'); 
     gradient.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0,0,32,32);
+    ctx.fillRect(0,0,64,64);
     return new THREE.CanvasTexture(canvas);
 }
 const particleTexture = createGlowTexture();
@@ -92,11 +105,14 @@ const particleTexture = createGlowTexture();
 function createTextPoints(text, size = 10) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    const fontSize = 100;
-    canvas.width = fontSize * text.length; 
+    const fontSize = 120; // 加大字體以獲得更好的採樣
+    ctx.font = `bold ${fontSize}px "Microsoft JhengHei", Arial, sans-serif`; // 確保支援中文
+    const textMetrics = ctx.measureText(text);
+    canvas.width = textMetrics.width + 20; 
     canvas.height = fontSize * 1.5;
     
-    ctx.font = `bold ${fontSize}px Arial`;
+    // 重新設置上下文屬性，因為調整 canvas 大小可能會重置它們
+    ctx.font = `bold ${fontSize}px "Microsoft JhengHei", Arial, sans-serif`;
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -106,14 +122,12 @@ function createTextPoints(text, size = 10) {
     const data = imageData.data;
     const points = [];
     
-    // 降低採樣密度以減少粒子數
-    const step = 4; 
+    const step = 5; // 採樣間距
     
     for(let y = 0; y < canvas.height; y += step) {
         for(let x = 0; x < canvas.width; x += step) {
             const index = (y * canvas.width + x) * 4;
-            if(data[index + 3] > 128) { // 如果像素不透明
-                // 將 2D 座標轉換為以中心為原點的座標，並翻轉 Y 軸
+            if(data[index + 3] > 128) { 
                 points.push({
                     x: (x - canvas.width / 2) * (size / fontSize),
                     y: -(y - canvas.height / 2) * (size / fontSize)
@@ -125,20 +139,20 @@ function createTextPoints(text, size = 10) {
 }
 
 // ==========================================
-// 3. 系統核心
+// 3. 系統核心 (加入隨機大小)
 // ==========================================
 const fireworks = [];
-const trails = []; // 專門存放尾跡粒子
+const trails = [];
 
-// 尾跡粒子類別 (Rocket Trail)
 class TrailParticle {
     constructor(pos, color) {
         this.pos = pos.clone();
-        this.vel = new THREE.Vector3((Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5);
+        // 讓尾跡稍微有些隨機漂浮感
+        this.vel = new THREE.Vector3((Math.random()-0.5)*0.8, Math.random()*0.5, (Math.random()-0.5)*0.8);
         this.life = 1.0;
-        this.decay = 0.03 + Math.random() * 0.03;
+        this.decay = 0.02 + Math.random() * 0.02; // 延長一點壽命
         this.color = color;
-        this.size = 1.5 + Math.random();
+        this.size = 2.0 + Math.random();
     }
     update() {
         this.pos.add(this.vel);
@@ -152,23 +166,23 @@ class Firework {
         this.phase = 'launch';
         this.type = type;
         this.textContent = textContent;
-        
-        // 顏色設定
-        const hue = Math.random() * 360;
-        this.color = new THREE.Color().setHSL(hue/360, 1, 0.6);
-        if (type === 'heart') this.color.setHex(0xff3366); // 愛心固定粉紅色
-        if (type === 'text') this.color.setHex(0xffaa00);  // 文字固定金黃色
 
-        // 升空設定
-        this.pos = new THREE.Vector3(startX, -40, 0);
-        this.vel = new THREE.Vector3(0, (Math.random() * 0.5 + 1.5), 0);
+        // --- 關鍵修改：隨機爆炸規模 (1.0 ~ 1.5倍) ---
+        this.explosionScale = 1.0 + Math.random() * 0.5;
+        
+        const hue = Math.random() * 360;
+        this.color = new THREE.Color().setHSL(hue/360, 1, 0.65);
+        if (type === 'heart') this.color.setHex(0xff3366); 
+        if (type === 'text') this.color.setHSL(45/360, 1, 0.7); // 金色
+
+        this.pos = new THREE.Vector3(startX, -50, 0); // 從更低處發射
+        this.vel = new THREE.Vector3(0, (Math.random() * 0.5 + 1.8), 0);
         this.targetY = targetY;
         
-        // 火箭本體
         const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0)]);
         const mat = new THREE.PointsMaterial({
             color: this.color,
-            size: 3.0,
+            size: 3.5,
             map: particleTexture,
             transparent: true,
             blending: THREE.AdditiveBlending,
@@ -185,15 +199,14 @@ class Firework {
         if (this.phase === 'launch') {
             this.pos.add(this.vel);
             this.rocket.position.copy(this.pos);
-            this.vel.y *= 0.985; // 重力減速
+            this.vel.y *= 0.985;
 
-            // --- 產生尾跡 ---
-            if (Math.random() > 0.2) {
+            // 增加尾跡的發射頻率
+            if (Math.random() > 0.1) {
                 trails.push(new TrailParticle(this.pos, this.color));
             }
 
-            // 到達高度或速度過慢時爆炸
-            if (this.vel.y < 0.2 || this.pos.y >= this.targetY) {
+            if (this.vel.y < 0.3 || this.pos.y >= this.targetY) {
                 this.explode();
             }
         } 
@@ -206,15 +219,14 @@ class Firework {
                 positions[i3+1] += this.velocities[i3+1];
                 positions[i3+2] += this.velocities[i3+2];
 
-                // 物理模擬
-                this.velocities[i3+1] -= 0.015; // 重力
-                this.velocities[i3] *= 0.94;    // 空氣阻力 (動漫感關鍵：快速減速)
-                this.velocities[i3+1] *= 0.94;
-                this.velocities[i3+2] *= 0.94;
+                this.velocities[i3+1] -= 0.02; // 加強重力
+                this.velocities[i3] *= 0.93;   // 加強空氣阻力，讓它停得更快，更像動漫
+                this.velocities[i3+1] *= 0.93;
+                this.velocities[i3+2] *= 0.93;
             }
             
             this.geometry.attributes.position.needsUpdate = true;
-            this.material.opacity -= 0.012; // 漸隱
+            this.material.opacity -= 0.011;
             
             if (this.material.opacity <= 0) {
                 this.isDead = true;
@@ -227,72 +239,57 @@ class Firework {
 
     getShapePoints() {
         const points = [];
-        const speed = 0.8 + Math.random() * 0.5;
+        // 基礎速度，文字類需要小一點才看得清
+        const baseSpeed = (this.type === 'text' ? 0.5 : 1.0);
+        const speed = baseSpeed + Math.random() * 0.4;
 
         if (this.type === 'text') {
-            const rawPoints = createTextPoints(this.textContent, 15);
-            // 隨機打亂一點點，或增加一些裝飾點
+            // 使用較大的尺寸參數，讓文字炸開後佔據更大空間
+            const rawPoints = createTextPoints(this.textContent, 25);
             rawPoints.forEach(p => {
-                // 文字煙火不需要太大的擴散速度，它們應該先保持形狀然後落下
                 points.push({
-                    vx: p.x * 0.05, // 縮放座標作為速度向量
+                    vx: p.x * 0.05,
                     vy: p.y * 0.05,
-                    vz: (Math.random() - 0.5) * 0.1 // 微量 Z 軸深度
+                    vz: (Math.random() - 0.5) * 0.5 
                 });
             });
-            // 增加一些隨機爆炸點增加豐富度
-            for(let i=0; i<100; i++) {
+             // 增加背景閃爍粒子
+             for(let i=0; i<150; i++) {
                 const angle = Math.random() * Math.PI * 2;
-                const r = Math.random() * 2;
-                points.push({ vx: Math.cos(angle)*r, vy: Math.sin(angle)*r, vz: (Math.random()-0.5)*2 });
+                const r = Math.random() * 4; // 較小的爆炸範圍作為文字背景
+                points.push({ vx: Math.cos(angle)*r, vy: Math.sin(angle)*r, vz: (Math.random()-0.5)*4 });
             }
         }
         else if (this.type === 'heart') {
-            // 愛心參數方程
-            for (let i = 0; i < 400; i++) {
-                const t = (i / 400) * Math.PI * 2;
-                // x = 16sin^3(t)
+            for (let i = 0; i < 500; i++) {
+                const t = (i / 500) * Math.PI * 2;
                 const x = 16 * Math.pow(Math.sin(t), 3);
-                // y = 13cos(t) - 5cos(2t) - 2cos(3t) - cos(4t)
                 const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-                
-                // 歸一化並縮放
-                points.push({
-                    vx: (x / 16) * speed,
-                    vy: (y / 16) * speed,
-                    vz: (Math.random() - 0.5) * 0.2
-                });
+                points.push({ vx: (x/12)*speed, vy: (y/12)*speed, vz: (Math.random()-0.5)*0.5 });
             }
         }
         else if (this.type === 'ring') {
-            // 土星環/圓環
-            for (let i = 0; i < 300; i++) {
-                const angle = (i / 300) * Math.PI * 2;
+            for (let i = 0; i < 400; i++) {
+                const angle = (i / 400) * Math.PI * 2;
                 points.push({
-                    vx: Math.cos(angle) * speed * 1.5,
-                    vy: Math.sin(angle) * speed * 0.2, // 壓扁 Y 軸
-                    vz: Math.sin(angle) * speed * 1.5
+                    vx: Math.cos(angle) * speed * 2.0,
+                    vy: Math.sin(angle) * speed * 0.1,
+                    vz: Math.sin(angle) * speed * 2.0
                 });
             }
-            // 加上中間的一顆球
-            for (let i=0; i<100; i++) {
+            for (let i=0; i<150; i++) {
                  const theta = Math.random() * Math.PI * 2;
                  const phi = Math.acos((Math.random() * 2) - 1);
-                 const r = speed * 0.5;
-                 points.push({
-                     vx: r * Math.sin(phi) * Math.cos(theta),
-                     vy: r * Math.sin(phi) * Math.sin(theta),
-                     vz: r * Math.cos(phi)
-                 });
+                 const r = speed * 0.7;
+                 points.push({ vx: r*Math.sin(phi)*Math.cos(theta), vy: r*Math.sin(phi)*Math.sin(theta), vz: r*Math.cos(phi) });
             }
         }
-        else {
-            // 預設球體 (Sphere)
-            const count = 400;
+        else { // Sphere
+            const count = 600; // 增加粒子數
             for (let i = 0; i < count; i++) {
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos((Math.random() * 2) - 1);
-                const r = speed * (0.8 + Math.random() * 0.4); 
+                const r = speed * (0.9 + Math.random() * 0.5); 
                 points.push({
                     vx: r * Math.sin(phi) * Math.cos(theta),
                     vy: r * Math.sin(phi) * Math.sin(theta),
@@ -320,12 +317,12 @@ class Firework {
             positions[i*3+1] = this.pos.y;
             positions[i*3+2] = this.pos.z;
 
-            this.velocities[i*3] = shapeData[i].vx;
-            this.velocities[i*3+1] = shapeData[i].vy;
-            this.velocities[i*3+2] = shapeData[i].vz;
+            // --- 關鍵修改：應用隨機縮放比例 ---
+            this.velocities[i*3] = shapeData[i].vx * this.explosionScale;
+            this.velocities[i*3+1] = shapeData[i].vy * this.explosionScale;
+            this.velocities[i*3+2] = shapeData[i].vz * this.explosionScale;
 
-            // 讓顏色稍微有變化
-            const c = this.color.clone().offsetHSL(0, 0, (Math.random()-0.5)*0.2);
+            const c = this.color.clone().offsetHSL(0, (Math.random()-0.5)*0.2, (Math.random()-0.5)*0.1);
             colorsArr[i*3] = c.r;
             colorsArr[i*3+1] = c.g;
             colorsArr[i*3+2] = c.b;
@@ -335,7 +332,8 @@ class Firework {
         this.geometry.setAttribute('color', new THREE.BufferAttribute(colorsArr, 3));
 
         this.material = new THREE.PointsMaterial({
-            size: this.type === 'text' ? 2.5 : 3.0,
+            // 根據類型和縮放比例稍微調整粒子大小
+            size: (this.type === 'text' ? 2.8 : 3.5) * (this.explosionScale * 0.8),
             map: particleTexture,
             vertexColors: true,
             transparent: true,
@@ -350,50 +348,40 @@ class Firework {
 }
 
 // ==========================================
-// 4. 全域 Trail 渲染 (單一批次優化)
+// 4. 全域 Trail 渲染
 // ==========================================
-// 為了效能，這裡我們用一個簡單的共享幾何體來渲染所有升空軌跡
 const trailGeo = new THREE.BufferGeometry();
 const trailMat = new THREE.PointsMaterial({
     color: 0xffffff,
-    size: 2.0,
+    size: 3.0,
     map: particleTexture,
     transparent: true,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
-    vertexColors: true
+    vertexColors: true,
 });
 const trailMesh = new THREE.Points(trailGeo, trailMat);
 scene.add(trailMesh);
 
 function updateGlobalTrails() {
-    // 移除死掉的 trail
     for (let i = trails.length - 1; i >= 0; i--) {
         trails[i].update();
         if (trails[i].life <= 0) trails.splice(i, 1);
     }
 
-    // 重建 Buffer
     const positions = [];
     const colors = [];
     
     trails.forEach(t => {
         positions.push(t.pos.x, t.pos.y, t.pos.z);
-        // 顏色隨壽命變淡
-        colors.push(t.color.r, t.color.g, t.color.b); 
+        // 讓尾跡顏色隨著壽命快速變暗，增加閃爍感
+        const intensity = t.life * t.life; 
+        colors.push(t.color.r * intensity, t.color.g * intensity, t.color.b * intensity);
     });
 
     trailGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     trailGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    // 手動處理 opacity 比較麻煩，這裡簡單利用 color 的黑白混合或讓 bloom 處理
-    // 更好的做法是在 shader 裡處理 alpha，但這邊簡化處理：
-    // 我們可以將顏色乘以 life 來模擬 fade out
-    const colorsAttr = trailGeo.attributes.color.array;
-    for(let i=0; i<trails.length; i++){
-        colorsAttr[i*3] *= trails[i].life;
-        colorsAttr[i*3+1] *= trails[i].life;
-        colorsAttr[i*3+2] *= trails[i].life;
-    }
+    trailGeo.attributes.position.needsUpdate = true;
     trailGeo.attributes.color.needsUpdate = true;
 }
 
@@ -403,34 +391,31 @@ function updateGlobalTrails() {
 function animate() {
     requestAnimationFrame(animate);
     
-    // 更新煙火
     for (let i = fireworks.length - 1; i >= 0; i--) {
         fireworks[i].update();
-        if (fireworks[i].isDead) {
-            fireworks.splice(i, 1);
-        }
+        if (fireworks[i].isDead) fireworks.splice(i, 1);
     }
     
-    // 更新軌跡
     updateGlobalTrails();
-
     composer.render();
 }
 animate();
 
 // ==========================================
-// 6. 互動與倒數邏輯
+// 6. 互動與倒數邏輯 (擴大範圍)
 // ==========================================
 window.launchManual = (type = 'random', text = '') => {
     let finalType = type;
     if (type === 'random') {
-        const types = ['sphere', 'sphere', 'ring', 'heart'];
+        const types = ['sphere', 'sphere', 'sphere', 'ring', 'heart'];
         finalType = types[Math.floor(Math.random() * types.length)];
     }
 
-    const x = (Math.random() - 0.5) * 60;
-    // 文字煙火打高一點，避免被遮擋
-    const y = finalType === 'text' ? 35 : 20 + Math.random() * 20; 
+    // --- 關鍵修改：擴大水平發射範圍 (-75 到 +75) ---
+    const x = (Math.random() - 0.5) * 150;
+    // 文字和愛心打高一點
+    const yBase = (finalType === 'text' || finalType === 'heart') ? 45 : 30;
+    const y = yBase + Math.random() * 25; 
     
     fireworks.push(new Firework(x, y, finalType, text));
 };
@@ -441,19 +426,20 @@ const targetDate = new Date(new Date().getFullYear() + 1, 0, 1);
 
 function startAutoFire() {
     if(autoInterval) return;
+    // 加快自動施放頻率
     autoInterval = setInterval(() => {
         const r = Math.random();
-        if (r > 0.9) launchManual('text', '2025');
-        else if (r > 0.8) launchManual('heart');
+        if (r > 0.92) launchManual('text', '2026 新年快樂');
+        else if (r > 0.85) launchManual('heart');
         else launchManual('random');
-    }, 1200);
+    }, 800); 
 }
 
 function updateCountdown() {
     const now = new Date();
     const diff = targetDate - now;
     if (diff <= 0) {
-        countdownEl.innerText = "2025 HAPPY NEW YEAR";
+        countdownEl.innerText = "2026 HAPPY NEW YEAR";
         startAutoFire();
         return;
     }
@@ -469,11 +455,13 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     composer.setSize(window.innerWidth, window.innerHeight);
+    // 更新 bloom pass 的解析度
+    bloomPass.resolution.set(window.innerWidth, window.innerHeight);
 });
 
 // 開場秀
-setTimeout(() => launchManual('text', '2025'), 500);
-setTimeout(() => launchManual('heart'), 1500);
+setTimeout(() => launchManual('text', '2026 新年快樂'), 800);
+setTimeout(() => launchManual('text', 'Happy New Year'), 2500);
 
 </script>
 </body>
