@@ -38,6 +38,7 @@
     <div id="countdown">00:00:00</div>
     <div id="controls">
         <span class="label">2026 清晰版動漫煙火控制台</span>
+        <button onclick="toggleTheme()"> 黑/白</button>
         <button onclick="launchManual('random')">🚀 隨機發射</button>
         <button onclick="launchManual('heart')">❤️ 愛心</button>
         <button onclick="launchManual('ring')">🪐 土星環</button>
@@ -71,6 +72,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 稍微降低像素比以提高效能
 renderer.toneMapping = THREE.ACESFilmicToneMapping; // 改用更有電影感的 Tone Mapping
 renderer.toneMappingExposure = 1.2;
+let isDarkMode = true; // 預設黑底
 document.body.appendChild(renderer.domElement);
 
 const renderScene = new RenderPass(scene, camera);
@@ -84,6 +86,39 @@ bloomPass.threshold = 0.15; // 稍微提高閾值，只讓夠亮的地方發光
 const composer = new EffectComposer(renderer);
 composer.addPass(renderScene);
 composer.addPass(bloomPass);
+
+
+window.toggleTheme = () => {
+    isDarkMode = !isDarkMode;
+
+    if (isDarkMode) {
+        // ===== 黑色主題 =====
+        document.body.style.backgroundColor = '#050505';
+
+        renderer.setClearColor(0x050505, 1);
+
+        // 黑霧，保持深邃感
+        scene.fog = new THREE.FogExp2(0x050505, 0.0015);
+
+        // Bloom 在黑底下可以強一點
+        bloomPass.threshold = 0.15;
+        bloomPass.strength = 2.2;
+
+    } else {
+        // ===== 白色主題 =====
+        document.body.style.backgroundColor = '#ffffff';
+
+        renderer.setClearColor(0xffffff, 1);
+
+        // 白霧（或可直接 scene.fog = null）
+        scene.fog = new THREE.FogExp2(0xffffff, 0.001);
+
+        // 白底避免整片泛白
+        bloomPass.threshold = 0.3;
+        bloomPass.strength = 1.8;
+    }
+};
+
 
 // ==========================================
 // 2. 資源生成
