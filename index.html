@@ -89,13 +89,13 @@
 <div id="ui-container">
     <div id="countdown">00:00:00</div>
     <div id="controls">
-        <button onclick="launchManual('random')">🚀 隨機發射</button>
-        <button onclick="launchManual('heart')">❤️ 愛心</button>
-        <button onclick="launchManual('ring')">🪐 土星環</button>
-        <button onclick="launchManual('text', '2026 新年快樂')">🧧 2026 新年快樂</button>
+        <button onclick="launchManual('random')">🎉 隨機發射</button>
+        <button onclick="launchManual('heart')">🎉 愛心</button>
+        <button onclick="launchManual('ring')">🎉 土星環</button>
+        <button onclick="launchManual('text', '2026 新年快樂')">🎉 2026 新年快樂</button>
         <button onclick="launchManual('text', 'Happy New Year')">🎉 Happy New Year</button>
-        <button onclick="launchManual('image');">圖片煙火</button>
-        <button onclick="document.getElementById('file-input').click()">🖼️ 上傳圖片煙火</button>
+        <button onclick="launchManual('image');">🎉 圖片煙火</button>
+        <button onclick="document.getElementById('file-input').click()">🎉 上傳圖片煙火</button>
         <input type="file" id="file-input" style="display:none" accept="image/*">
     </div>
 </div>
@@ -550,9 +550,9 @@ function startAutoFire() {
 
 function updateCountdown() {
     const now = new Date();
-    const diff = targetDate - now - 1000*47*60*60;
+    const diff = targetDate - now;// - 1000*47*60*60
     if (diff <= 0) {
-            countdownEl.innerText = "2026 HAPPY NEW YEAR";
+            countdownEl.innerText = "";//2026 HAPPY NEW YEAR
             startAutoFire();
             return;
     }
@@ -583,7 +583,7 @@ window.addEventListener('resize', () => {
 });
 
 // 開場秀
-//startAutoFire();
+startAutoFire();
 //setTimeout(() => launchManual('text', '2026 新年快樂'), 800);
 //setTimeout(() => launchManual('text', 'Happy New Year'), 2500);
 
