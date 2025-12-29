@@ -67,7 +67,7 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerH
 camera.position.set(0, 0, 160);
 camera.lookAt(0, 40, 0);
 
-const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" ,alpha: true});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 稍微降低像素比以提高效能
 renderer.toneMapping = THREE.ACESFilmicToneMapping; // 改用更有電影感的 Tone Mapping
@@ -97,14 +97,16 @@ window.toggleTheme = () => {
         renderer.setClearColor(0x000000, 1);
         // 黑霧，保持深邃感
         scene.fog = new THREE.FogExp2(0x050505, 0.0015);
-
+        bloomPass.threshold = 0.15;
+        bloomPass.strength = 2.2;
 
     } else {
-        // ===== 白色主題 =====
-        document.body.style.backgroundColor = '#ffffff';
-        renderer.setClearColor(0xffffff, 1);
-        // 白霧（或可直接 scene.fog = null）
-        scene.fog = new THREE.FogExp2(0xffffff, 0.001);
+        // ===== 透明背景 =====
+        document.body.style.backgroundColor = 'transparent';
+        renderer.setClearColor(0x000000, 0);
+        scene.fog = null;
+        bloomPass.threshold = 0.25;
+        bloomPass.strength = 1.9;
     }
 };
 
