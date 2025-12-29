@@ -43,6 +43,7 @@
         <button onclick="launchManual('ring')">🪐 土星環</button>
         <button onclick="launchManual('text', '2026 新年快樂')">🧧 2026 新年快樂</button>
         <button onclick="launchManual('text', 'Happy New Year')">🎉 Happy New Year</button>
+        <button onclick="launchManual('image');">圖片煙火</button>
         <button onclick="document.getElementById('file-input').click()">🖼️ 上傳圖片煙火</button>
         <input type="file" id="file-input" style="display:none" accept="image/*">
     </div>
@@ -146,8 +147,8 @@ function getImagePoints(image, size = 30) {
     const ctx = canvas.getContext('2d');
     
     // 縮放圖片以優化效能，寬度設定為 100 像素
-    const scale = 100 / image.width;
-    canvas.width = 100;
+    const scale = 200 / image.width;
+    canvas.width = 200;
     canvas.height = image.height * scale;
     
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
