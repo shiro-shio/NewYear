@@ -94,28 +94,17 @@ window.toggleTheme = () => {
     if (isDarkMode) {
         // ===== 黑色主題 =====
         document.body.style.backgroundColor = '#050505';
-
-        renderer.setClearColor(0x050505, 1);
-
+        renderer.setClearColor(0x000000, 1);
         // 黑霧，保持深邃感
         scene.fog = new THREE.FogExp2(0x050505, 0.0015);
 
-        // Bloom 在黑底下可以強一點
-        bloomPass.threshold = 0.15;
-        bloomPass.strength = 2.2;
 
     } else {
         // ===== 白色主題 =====
         document.body.style.backgroundColor = '#ffffff';
-
         renderer.setClearColor(0xffffff, 1);
-
         // 白霧（或可直接 scene.fog = null）
         scene.fog = new THREE.FogExp2(0xffffff, 0.001);
-
-        // 白底避免整片泛白
-        bloomPass.threshold = 0.3;
-        bloomPass.strength = 1.8;
     }
 };
 
