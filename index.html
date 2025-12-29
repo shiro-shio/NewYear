@@ -552,14 +552,24 @@ function updateCountdown() {
     const now = new Date();
     const diff = targetDate - now;
     if (diff <= 0) {
-        countdownEl.innerText = "2026 HAPPY NEW YEAR";
-        startAutoFire();
-        return;
+            countdownEl.innerText = "2026 HAPPY NEW YEAR";
+            startAutoFire();
+            return;
     }
     const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
     const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
     const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
-    countdownEl.innerText = `${h}:${m}:${s}`;
+
+    const parts = [];
+    if (h > 0) {
+        parts.push(String(h).padStart(2, '0'));
+    }
+    if (m > 0 || h > 0) {
+        parts.push(String(m).padStart(2, '0'));
+    }
+        parts.push(String(s).padStart(2, '0'));
+        
+    countdownEl.innerText = parts.join(':');
 }
 setInterval(updateCountdown, 1000);
 
