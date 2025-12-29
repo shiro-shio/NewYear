@@ -550,7 +550,7 @@ function startAutoFire() {
 
 function updateCountdown() {
     const now = new Date();
-    const diff = targetDate - now;
+    const diff = targetDate - now - 1000*47*60*60;
     if (diff <= 0) {
             countdownEl.innerText = "2026 HAPPY NEW YEAR";
             startAutoFire();
@@ -568,7 +568,7 @@ function updateCountdown() {
         parts.push(String(m).padStart(2, '0'));
     }
         parts.push(String(s).padStart(2, '0'));
-        
+
     countdownEl.innerText = parts.join(':');
 }
 setInterval(updateCountdown, 1000);
