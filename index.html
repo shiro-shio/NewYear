@@ -415,7 +415,7 @@ window.launchManual = (type = 'random', text = '') => {
     const x = (Math.random() - 0.5) * 200;
     // 文字和愛心打高一點
     const yBase = (finalType === 'text' || finalType === 'heart') ? 45 : 30;
-    const y = yBase + Math.random() * 45; 
+    const y = yBase + Math.random() * 150; 
     
     fireworks.push(new Firework(x, y, finalType, text));
 };
