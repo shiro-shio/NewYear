@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>2025 Realistic Anime Fireworks (No Flash Wave)</title>
+<title>2025 Anime Fireworks (Trails & Shapes)</title>
 <style>
     body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', sans-serif; }
     #ui-container {
@@ -12,7 +12,7 @@
     }
     #countdown { font-size: 4rem; font-weight: 200; letter-spacing: 2px; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
     #controls { pointer-events: auto; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); padding: 10px 20px; border-radius: 30px; display: inline-block; border: 1px solid rgba(255,255,255,0.2); }
-    button { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 15px; border-radius: 15px; cursor: pointer; transition: 0.3s; }
+    button { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 15px; border-radius: 15px; cursor: pointer; transition: 0.3s; margin: 0 5px; }
     button:hover { background: rgba(255,255,255,0.2); border-color: white; }
     .label { font-size: 0.8rem; margin-right: 10px; opacity: 0.8; }
 </style>
@@ -31,9 +31,11 @@
 <div id="ui-container">
     <div id="countdown">00:00:00</div>
     <div id="controls">
-        <span class="label">2025 新年倒數 (無光波版)</span>
-        <button id="btn-sound">🔊 開啟音效 (模擬)</button>
-        <button id="btn-launch" onclick="launchManual()">🚀 發射煙火</button>
+        <span class="label">2025 動漫風格煙火</span>
+        <button onclick="launchManual('random')">🚀 隨機發射</button>
+        <button onclick="launchManual('heart')">❤️ 愛心</button>
+        <button onclick="launchManual('text', '2025')">🔢 2025</button>
+        <button onclick="launchManual('text', 'HAPPY')">✨ HAPPY</button>
     </div>
 </div>
 
@@ -47,11 +49,11 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 // 1. 場景與後處理設定
 // ==========================================
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x000000, 0.002);
+scene.fog = new THREE.FogExp2(0x050505, 0.002);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 0, 100);
-camera.lookAt(0, 20, 0);
+camera.position.set(0, 0, 120);
+camera.lookAt(0, 30, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -59,11 +61,10 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ReinhardToneMapping;
 document.body.appendChild(renderer.domElement);
 
-// --- Bloom (泛光) 設定 (保留泛光讓粒子發亮) ---
 const renderScene = new RenderPass(scene, camera);
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-bloomPass.strength = 2.2; // 稍微降低一點強度
-bloomPass.radius = 0.8;
+bloomPass.strength = 2.5; 
+bloomPass.radius = 0.5;
 bloomPass.threshold = 0.1;
 
 const composer = new EffectComposer(renderer);
@@ -71,7 +72,7 @@ composer.addPass(renderScene);
 composer.addPass(bloomPass);
 
 // ==========================================
-// 2. 資源生成 (程式化貼圖)
+// 2. 資源生成
 // ==========================================
 function createGlowTexture() {
     const canvas = document.createElement('canvas');
@@ -79,7 +80,7 @@ function createGlowTexture() {
     const ctx = canvas.getContext('2d');
     const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
     gradient.addColorStop(0, 'rgba(255,255,255,1)');
-    gradient.addColorStop(0.3, 'rgba(255,255,255,0.6)'); // 調整梯度讓邊緣更軟
+    gradient.addColorStop(0.4, 'rgba(255,255,255,0.3)'); 
     gradient.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = gradient;
     ctx.fillRect(0,0,32,32);
@@ -87,35 +88,87 @@ function createGlowTexture() {
 }
 const particleTexture = createGlowTexture();
 
+// --- 文字座標生成器 ---
+function createTextPoints(text, size = 10) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const fontSize = 100;
+    canvas.width = fontSize * text.length; 
+    canvas.height = fontSize * 1.5;
+    
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const points = [];
+    
+    // 降低採樣密度以減少粒子數
+    const step = 4; 
+    
+    for(let y = 0; y < canvas.height; y += step) {
+        for(let x = 0; x < canvas.width; x += step) {
+            const index = (y * canvas.width + x) * 4;
+            if(data[index + 3] > 128) { // 如果像素不透明
+                // 將 2D 座標轉換為以中心為原點的座標，並翻轉 Y 軸
+                points.push({
+                    x: (x - canvas.width / 2) * (size / fontSize),
+                    y: -(y - canvas.height / 2) * (size / fontSize)
+                });
+            }
+        }
+    }
+    return points;
+}
+
 // ==========================================
-// 3. 煙火系統核心邏輯
+// 3. 系統核心
 // ==========================================
 const fireworks = [];
-const colors = [
-    { h: 0, s: 100, l: 65 },    // 紅
-    { h: 35, s: 100, l: 65 },   // 橙金
-    { h: 120, s: 100, l: 65 },  // 綠
-    { h: 200, s: 100, l: 70 },  // 天藍
-    { h: 280, s: 100, l: 65 },  // 紫
-];
+const trails = []; // 專門存放尾跡粒子
+
+// 尾跡粒子類別 (Rocket Trail)
+class TrailParticle {
+    constructor(pos, color) {
+        this.pos = pos.clone();
+        this.vel = new THREE.Vector3((Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5);
+        this.life = 1.0;
+        this.decay = 0.03 + Math.random() * 0.03;
+        this.color = color;
+        this.size = 1.5 + Math.random();
+    }
+    update() {
+        this.pos.add(this.vel);
+        this.life -= this.decay;
+    }
+}
 
 class Firework {
-    constructor(startX, targetY) {
+    constructor(startX, targetY, type = 'sphere', textContent = '') {
         this.isDead = false;
         this.phase = 'launch';
+        this.type = type;
+        this.textContent = textContent;
         
-        const baseColor = colors[Math.floor(Math.random() * colors.length)];
-        this.color = new THREE.Color().setHSL(baseColor.h/360, baseColor.s/100, baseColor.l/100);
-        
-        // --- 升空階段 ---
+        // 顏色設定
+        const hue = Math.random() * 360;
+        this.color = new THREE.Color().setHSL(hue/360, 1, 0.6);
+        if (type === 'heart') this.color.setHex(0xff3366); // 愛心固定粉紅色
+        if (type === 'text') this.color.setHex(0xffaa00);  // 文字固定金黃色
+
+        // 升空設定
         this.pos = new THREE.Vector3(startX, -40, 0);
-        this.vel = new THREE.Vector3(0, (Math.random() * 0.5 + 1.3), 0);
-        this.targetY = targetY + (Math.random() * 10 - 5);
+        this.vel = new THREE.Vector3(0, (Math.random() * 0.5 + 1.5), 0);
+        this.targetY = targetY;
         
+        // 火箭本體
         const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0)]);
         const mat = new THREE.PointsMaterial({
-            color: this.color, // 升空時就帶顏色
-            size: 2.0,
+            color: this.color,
+            size: 3.0,
             map: particleTexture,
             transparent: true,
             blending: THREE.AdditiveBlending,
@@ -124,20 +177,23 @@ class Firework {
         this.rocket = new THREE.Points(geo, mat);
         this.rocket.position.copy(this.pos);
         scene.add(this.rocket);
-
+        
         this.particles = null; 
-        this.geometry = null;
     }
 
     update() {
         if (this.phase === 'launch') {
             this.pos.add(this.vel);
             this.rocket.position.copy(this.pos);
-            this.pos.x += (Math.random() - 0.5) * 0.15; // 增加一點升空時的抖動感
+            this.vel.y *= 0.985; // 重力減速
 
-            if (this.vel.y > 0.2 && this.pos.y < this.targetY) {
-                this.vel.y *= 0.98;
-            } else {
+            // --- 產生尾跡 ---
+            if (Math.random() > 0.2) {
+                trails.push(new TrailParticle(this.pos, this.color));
+            }
+
+            // 到達高度或速度過慢時爆炸
+            if (this.vel.y < 0.2 || this.pos.y >= this.targetY) {
                 this.explode();
             }
         } 
@@ -150,16 +206,15 @@ class Firework {
                 positions[i3+1] += this.velocities[i3+1];
                 positions[i3+2] += this.velocities[i3+2];
 
-                this.velocities[i3+1] -= 0.018; // 稍微加強重力
-                this.velocities[i3] *= 0.955;    // 增加空氣阻力讓炸開後減速感更強
-                this.velocities[i3+1] *= 0.955;
-                this.velocities[i3+2] *= 0.955;
+                // 物理模擬
+                this.velocities[i3+1] -= 0.015; // 重力
+                this.velocities[i3] *= 0.94;    // 空氣阻力 (動漫感關鍵：快速減速)
+                this.velocities[i3+1] *= 0.94;
+                this.velocities[i3+2] *= 0.94;
             }
             
             this.geometry.attributes.position.needsUpdate = true;
-            
-            this.material.opacity -= 0.01;
-            this.material.size *= 0.992;
+            this.material.opacity -= 0.012; // 漸隱
             
             if (this.material.opacity <= 0) {
                 this.isDead = true;
@@ -170,41 +225,117 @@ class Firework {
         }
     }
 
+    getShapePoints() {
+        const points = [];
+        const speed = 0.8 + Math.random() * 0.5;
+
+        if (this.type === 'text') {
+            const rawPoints = createTextPoints(this.textContent, 15);
+            // 隨機打亂一點點，或增加一些裝飾點
+            rawPoints.forEach(p => {
+                // 文字煙火不需要太大的擴散速度，它們應該先保持形狀然後落下
+                points.push({
+                    vx: p.x * 0.05, // 縮放座標作為速度向量
+                    vy: p.y * 0.05,
+                    vz: (Math.random() - 0.5) * 0.1 // 微量 Z 軸深度
+                });
+            });
+            // 增加一些隨機爆炸點增加豐富度
+            for(let i=0; i<100; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * 2;
+                points.push({ vx: Math.cos(angle)*r, vy: Math.sin(angle)*r, vz: (Math.random()-0.5)*2 });
+            }
+        }
+        else if (this.type === 'heart') {
+            // 愛心參數方程
+            for (let i = 0; i < 400; i++) {
+                const t = (i / 400) * Math.PI * 2;
+                // x = 16sin^3(t)
+                const x = 16 * Math.pow(Math.sin(t), 3);
+                // y = 13cos(t) - 5cos(2t) - 2cos(3t) - cos(4t)
+                const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                
+                // 歸一化並縮放
+                points.push({
+                    vx: (x / 16) * speed,
+                    vy: (y / 16) * speed,
+                    vz: (Math.random() - 0.5) * 0.2
+                });
+            }
+        }
+        else if (this.type === 'ring') {
+            // 土星環/圓環
+            for (let i = 0; i < 300; i++) {
+                const angle = (i / 300) * Math.PI * 2;
+                points.push({
+                    vx: Math.cos(angle) * speed * 1.5,
+                    vy: Math.sin(angle) * speed * 0.2, // 壓扁 Y 軸
+                    vz: Math.sin(angle) * speed * 1.5
+                });
+            }
+            // 加上中間的一顆球
+            for (let i=0; i<100; i++) {
+                 const theta = Math.random() * Math.PI * 2;
+                 const phi = Math.acos((Math.random() * 2) - 1);
+                 const r = speed * 0.5;
+                 points.push({
+                     vx: r * Math.sin(phi) * Math.cos(theta),
+                     vy: r * Math.sin(phi) * Math.sin(theta),
+                     vz: r * Math.cos(phi)
+                 });
+            }
+        }
+        else {
+            // 預設球體 (Sphere)
+            const count = 400;
+            for (let i = 0; i < count; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                const r = speed * (0.8 + Math.random() * 0.4); 
+                points.push({
+                    vx: r * Math.sin(phi) * Math.cos(theta),
+                    vy: r * Math.sin(phi) * Math.sin(theta),
+                    vz: r * Math.cos(phi)
+                });
+            }
+        }
+        return points;
+    }
+
     explode() {
         this.phase = 'explode';
         scene.remove(this.rocket);
 
-        this.count = 450 + Math.floor(Math.random() * 250);
+        const shapeData = this.getShapePoints();
+        this.count = shapeData.length;
+        
         this.geometry = new THREE.BufferGeometry();
         this.velocities = new Float32Array(this.count * 3);
         const positions = new Float32Array(this.count * 3);
         const colorsArr = new Float32Array(this.count * 3);
 
         for (let i = 0; i < this.count; i++) {
-            const r = Math.random() * 0.5; 
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos((Math.random() * 2) - 1);
-            
-            positions[i*3] = this.pos.x + r * Math.sin(phi) * Math.cos(theta);
-            positions[i*3+1] = this.pos.y + r * Math.sin(phi) * Math.sin(theta);
-            positions[i*3+2] = this.pos.z + r * Math.cos(phi);
+            positions[i*3] = this.pos.x;
+            positions[i*3+1] = this.pos.y;
+            positions[i*3+2] = this.pos.z;
 
-            const power = Math.random() * 1.8 + 0.3; // 調整爆炸力度範圍
-            this.velocities[i*3] = Math.sin(phi) * Math.cos(theta) * power;
-            this.velocities[i*3+1] = Math.sin(phi) * Math.sin(theta) * power;
-            this.velocities[i*3+2] = Math.cos(phi) * power;
+            this.velocities[i*3] = shapeData[i].vx;
+            this.velocities[i*3+1] = shapeData[i].vy;
+            this.velocities[i*3+2] = shapeData[i].vz;
 
-            const colorVar = this.color.clone().offsetHSL(0, 0, (Math.random()-0.5)*0.3);
-            colorsArr[i*3] = colorVar.r;
-            colorsArr[i*3+1] = colorVar.g;
-            colorsArr[i*3+2] = colorVar.b;
+            // 讓顏色稍微有變化
+            const c = this.color.clone().offsetHSL(0, 0, (Math.random()-0.5)*0.2);
+            colorsArr[i*3] = c.r;
+            colorsArr[i*3+1] = c.g;
+            colorsArr[i*3+2] = c.b;
         }
 
         this.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         this.geometry.setAttribute('color', new THREE.BufferAttribute(colorsArr, 3));
 
         this.material = new THREE.PointsMaterial({
-            size: 2.8, // 稍微加大粒子尺寸
+            size: this.type === 'text' ? 2.5 : 3.0,
             map: particleTexture,
             vertexColors: true,
             transparent: true,
@@ -215,46 +346,108 @@ class Firework {
 
         this.particles = new THREE.Points(this.geometry, this.material);
         scene.add(this.particles);
-        
-        // 【已移除】原先這裡的 createFlash(this.pos, this.color); 已被拔掉
     }
 }
 
 // ==========================================
-// 4. 動畫迴圈
+// 4. 全域 Trail 渲染 (單一批次優化)
+// ==========================================
+// 為了效能，這裡我們用一個簡單的共享幾何體來渲染所有升空軌跡
+const trailGeo = new THREE.BufferGeometry();
+const trailMat = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 2.0,
+    map: particleTexture,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    vertexColors: true
+});
+const trailMesh = new THREE.Points(trailGeo, trailMat);
+scene.add(trailMesh);
+
+function updateGlobalTrails() {
+    // 移除死掉的 trail
+    for (let i = trails.length - 1; i >= 0; i--) {
+        trails[i].update();
+        if (trails[i].life <= 0) trails.splice(i, 1);
+    }
+
+    // 重建 Buffer
+    const positions = [];
+    const colors = [];
+    
+    trails.forEach(t => {
+        positions.push(t.pos.x, t.pos.y, t.pos.z);
+        // 顏色隨壽命變淡
+        colors.push(t.color.r, t.color.g, t.color.b); 
+    });
+
+    trailGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    trailGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    // 手動處理 opacity 比較麻煩，這裡簡單利用 color 的黑白混合或讓 bloom 處理
+    // 更好的做法是在 shader 裡處理 alpha，但這邊簡化處理：
+    // 我們可以將顏色乘以 life 來模擬 fade out
+    const colorsAttr = trailGeo.attributes.color.array;
+    for(let i=0; i<trails.length; i++){
+        colorsAttr[i*3] *= trails[i].life;
+        colorsAttr[i*3+1] *= trails[i].life;
+        colorsAttr[i*3+2] *= trails[i].life;
+    }
+    trailGeo.attributes.color.needsUpdate = true;
+}
+
+// ==========================================
+// 5. 動畫迴圈
 // ==========================================
 function animate() {
     requestAnimationFrame(animate);
+    
+    // 更新煙火
     for (let i = fireworks.length - 1; i >= 0; i--) {
         fireworks[i].update();
         if (fireworks[i].isDead) {
             fireworks.splice(i, 1);
         }
     }
+    
+    // 更新軌跡
+    updateGlobalTrails();
+
     composer.render();
 }
 animate();
 
 // ==========================================
-// 5. 互動與倒數邏輯
+// 6. 互動與倒數邏輯
 // ==========================================
-window.launchManual = () => {
-    const x = (Math.random() - 0.5) * 80;
-    const y = 20 + Math.random() * 20;
-    fireworks.push(new Firework(x, y));
+window.launchManual = (type = 'random', text = '') => {
+    let finalType = type;
+    if (type === 'random') {
+        const types = ['sphere', 'sphere', 'ring', 'heart'];
+        finalType = types[Math.floor(Math.random() * types.length)];
+    }
+
+    const x = (Math.random() - 0.5) * 60;
+    // 文字煙火打高一點，避免被遮擋
+    const y = finalType === 'text' ? 35 : 20 + Math.random() * 20; 
+    
+    fireworks.push(new Firework(x, y, finalType, text));
 };
 
 let autoInterval = null;
+const countdownEl = document.getElementById('countdown');
+const targetDate = new Date(new Date().getFullYear() + 1, 0, 1);
+
 function startAutoFire() {
     if(autoInterval) return;
     autoInterval = setInterval(() => {
-        launchManual();
-        if(Math.random() > 0.7) setTimeout(launchManual, 200);
-    }, 800);
+        const r = Math.random();
+        if (r > 0.9) launchManual('text', '2025');
+        else if (r > 0.8) launchManual('heart');
+        else launchManual('random');
+    }, 1200);
 }
-
-const countdownEl = document.getElementById('countdown');
-const targetDate = new Date(new Date().getFullYear() + 1, 0, 1);
 
 function updateCountdown() {
     const now = new Date();
@@ -278,15 +471,9 @@ window.addEventListener('resize', () => {
     composer.setSize(window.innerWidth, window.innerHeight);
 });
 
-let soundEnabled = false;
-document.getElementById('btn-sound').addEventListener('click', (e) => {
-    soundEnabled = !soundEnabled;
-    e.target.innerText = soundEnabled ? "🔊 音效已開" : "🔇 音效已關";
-    e.target.style.opacity = soundEnabled ? 1 : 0.7;
-});
-
-setTimeout(launchManual, 500);
-setTimeout(launchManual, 1200);
+// 開場秀
+setTimeout(() => launchManual('text', '2025'), 500);
+setTimeout(() => launchManual('heart'), 1500);
 
 </script>
 </body>
