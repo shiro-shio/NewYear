@@ -412,10 +412,10 @@ window.launchManual = (type = 'random', text = '') => {
     }
 
     // --- 關鍵修改：擴大水平發射範圍 (-75 到 +75) ---
-    const x = (Math.random() - 0.5) * 200;
+    const x = (Math.random() - 0.5) * 250;
     // 文字和愛心打高一點
     const yBase = (finalType === 'text' || finalType === 'heart') ? 45 : 30;
-    const y = yBase + Math.random() * 150; 
+    const y = yBase + Math.random() * 200; 
     
     fireworks.push(new Firework(x, y, finalType, text));
 };
