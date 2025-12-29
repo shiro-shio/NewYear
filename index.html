@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>2026 Sharp Anime Fireworks</title>
+<title>2026 HAPPY NEW YEAR</title>
 <style>
     body { margin: 0; overflow: hidden; background-color: #ffffff; font-family: 'Segoe UI', sans-serif; }
     #ui-container {
@@ -10,13 +10,58 @@
         text-align: center; z-index: 100; pointer-events: none;
         color: rgba(255,255,255,0.9); text-shadow: 0 0 5px rgba(0,0,0,0.5);
         width: 90%;
-    }
-    #countdown { font-size: 3rem; font-weight: 200; letter-spacing: 2px; margin-bottom: 15px; font-variant-numeric: tabular-nums; }
-    #controls { pointer-events: auto; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); padding: 15px 20px; border-radius: 20px; display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 8px; border: 1px solid rgba(255,255,255,0.15); }
-    button { background: transparent; border: 1px solid rgba(255,255,255,0.5); color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; white-space: nowrap; }
-    button:hover { background: rgba(255,255,255,0.25); border-color: white; transform: translateY(-2px); }
-    button:active { transform: translateY(0px); }
-    .label { width: 100%; font-size: 0.8rem; opacity: 0.7; margin-bottom: 8px; display: block; }
+        height: 100vh; 
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        }
+    #countdown { 
+        position: relative; 
+        top: 10%; 
+        font-size: 8rem; 
+        font-weight: 200; 
+        letter-spacing: 2px; 
+        margin-bottom: 15px; 
+        font-variant-numeric: tabular-nums; 
+        }
+    #controls { 
+        pointer-events: auto; 
+        background: rgba(66, 66, 66, 0.658); 
+        backdrop-filter: blur(10px); 
+        padding: 15px 20px; 
+        border-radius: 20px; 
+        display: inline-flex; 
+        flex-wrap: wrap; 
+        justify-content: center; 
+        gap: 8px; 
+        border: 0px solid rgba(255,255,255,0.15); 
+        }
+    button { 
+        background: transparent; 
+        border: 0px solid rgba(255,255,255,0.5); 
+        color: white; padding: 8px 16px; 
+        border-radius: 20px; 
+        cursor: pointer; 
+        transition: all 0.2s; 
+        font-size: 0.9rem; 
+        white-space: nowrap; 
+        }
+    button:hover { 
+        background: rgba(255,255,255,0.25); 
+        border-color: white; 
+        transform: translateY(-2px); 
+        }
+    button:active { 
+        transform: translateY(0px); 
+        }
+    .label { 
+        width: 100%; 
+        font-size: 0.8rem; 
+        opacity: 0.7; 
+        margin-bottom: 8px; 
+        display: block; 
+        }
     @media (max-width: 600px) {
         #countdown { font-size: 2rem; }
         button { padding: 6px 12px; font-size: 0.8rem; }
@@ -59,17 +104,16 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 // 1. 場景與後處理設定 (調整清晰度)
 // ==========================================
 const scene = new THREE.Scene();
-scene.fog = null //new THREE.FogExp2(0x050505, 0.0015); // 稍微減少霧氣
+scene.fog = null //new THREE.FogExp2(0x050505, 0.0015); 
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-// 將相機拉遠一點，以容納更廣的範圍
 camera.position.set(0, 0, 160);
 camera.lookAt(0, 40, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", alpha: true, premultipliedAlpha: false});
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 稍微降低像素比以提高效能
-renderer.toneMapping = THREE.ACESFilmicToneMapping; // 改用更有電影感的 Tone Mapping
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 renderer.setClearColor(0x000000, 0);
 document.body.appendChild(renderer.domElement);
@@ -460,7 +504,7 @@ function animate() {
     updateGlobalTrails();
     renderer.clear();
     renderer.render(scene, camera);
-    //composer.render();
+    composer.render();
 }
 animate();
 
