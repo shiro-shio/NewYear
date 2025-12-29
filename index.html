@@ -168,7 +168,7 @@ class Firework {
         this.textContent = textContent;
 
         // --- 關鍵修改：隨機爆炸規模 (1.0 ~ 1.5倍) ---
-        this.explosionScale = 1.0 + Math.random() * 0.5;
+        this.explosionScale = 1.0 + Math.random() * 3;
         
         const hue = Math.random() * 360;
         this.color = new THREE.Color().setHSL(hue/360, 1, 0.65);
