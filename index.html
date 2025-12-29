@@ -1,54 +1,212 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
-    <meta charset="UTF-8">
-    <title>2025 3D 跨年煙火秀</title>
-    <script src="https://unpkg.com/fireworks-js@2.x/dist/index.umd.js"></script>
-    <style>
-        :root { --bg: #000; --text: #fff; --panel-bg: rgba(255,255,255,0.1); }
-        body.light { --bg: #f0f0f0; --text: #000; --panel-bg: rgba(0,0,0,0.1); }
-        
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; }
-        #fireworks-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        
-        #ui-layer { position: relative; z-index: 10; padding: 20px; pointer-events: none; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
-        .panel { background: var(--panel-bg); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; pointer-events: auto; width: fit-content; }
-        
-        #countdown { font-size: 3rem; font-weight: bold; text-align: center; margin-top: 50px; }
-        .hidden { display: none !important; }
-        .controls { display: grid; gap: 10px; }
-        button { cursor: pointer; padding: 5px 10px; }
-    </style>
+        <meta charset="UTF-8">
+        <title>2025 3D 跨年煙火秀</title>
+        <script src="https://unpkg.com/fireworks-js@2.x/dist/index.umd.js"></script>
+        <style>
+                :root {
+                        --bg: #000;
+                        --text: #fff;
+                        --panel-bg: rgba(255, 255, 255, 0.1);
+                }
+
+                body.light {
+                        --bg: #f0f0f0;
+                        --text: #000;
+                        --panel-bg: rgba(0, 0, 0, 0.1);
+                }
+
+                body,
+                html {
+                        margin: 0;
+                        padding: 0;
+                        height: 100%;
+                        overflow: hidden;
+                        background: var(--bg);
+                        color: var(--text);
+                        font-family: sans-serif;
+                        transition: 0.3s;
+                }
+
+                #fireworks-container {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        z-index: 1;
+                }
+
+                #ui-layer {
+                        position: relative;
+                        z-index: 10;
+                        padding: 20px;
+                        pointer-events: none;
+                        height: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
+                }
+
+                .panel {
+                        background: var(--panel-bg);
+                        backdrop-filter: blur(10px);
+                        padding: 15px;
+                        border-radius: 12px;
+                        pointer-events: auto;
+                        width: fit-content;
+                }
+
+                #countdown {
+                        font-size: 3rem;
+                        font-weight: bold;
+                        text-align: center;
+                        margin-top: 50px;
+                }
+
+                .hidden {
+                        display: none !important;
+                }
+
+                .controls {
+                        display: grid;
+                        gap: 10px;
+                }
+
+                button {
+                        cursor: pointer;
+                        padding: 5px 10px;
+                }
+        </style>
 </head>
+
 <body class="dark">
-    <div id="fireworks-container"></div>
+        <div id="fireworks-container"></div>
 
-    <div id="ui-layer">
-        <div id="countdown">00:00:00</div>
+        <div id="ui-layer">
+                <div id="countdown">00:00:00</div>
 
-        <div class="panel" id="main-panel">
-            <div class="controls">
-                <div>
-                    <button onclick="toggleTheme()">切換黑/白底</button>
-                    <button onclick="toggleUI()">隱藏介面 (H)</button>
-                    <button onclick="manualLaunch()">手動放煙火</button>
-                </div>
-                
-                <div>
-                    時區: <select id="timezone" onchange="updateTime()"></select>
-                </div>
+                <div class="panel" id="main-panel">
+                        <div class="controls">
+                                <div>
+                                        <button onclick="toggleTheme()">切換黑/白底</button>
+                                        <button onclick="toggleUI()">隱藏介面 (H)</button>
+                                        <button onclick="manualLaunch()">手動放煙火</button>
+                                </div>
 
-                <div>
-                    造型選擇:
-                    <label><input type="checkbox" class="shape" value="circle" checked> 圓形</label>
-                    <label><input type="checkbox" class="shape" value="explosion" checked> 爆炸</label>
-                    <label><input type="checkbox" class="shape" value="star"> 星形</label>
-                </div>
+                                <div>
+                                        時區: <select id="timezone" onchange="updateTime()"></select>
+                                </div>
 
-                <div>
-                    自動持續時間 (秒): 
-                    <input type="number" id="duration" value="10" min="1" style="width: 50px;">
+                                <div>
+                                        造型選擇:
+                                        <label><input type="checkbox" class="shape" value="circle" checked> 圓形</label>
+                                        <label><input type="checkbox" class="shape" value="explosion" checked>
+                                                爆炸</label>
+                                        <label><input type="checkbox" class="shape" value="star"> 星形</label>
+                                </div>
+
+                                <div>
+                                        自動持續時間 (秒):
+                                        <input type="number" id="duration" value="10" min="1" style="width: 50px;">
+                                </div>
+                        </div>
                 </div>
-            </div>
         </div>
-    </div>
+        <script>
+                const container = document.getElementById('fireworks-container');
+                const fireworks = new Fireworks.default(container, {
+                        autoresize: true,
+                        opacity: 0.5,
+                        acceleration: 1.05,
+                        friction: 0.97,
+                        gravity: 1.5,
+                        particles: 50,
+                        traceLength: 3,
+                        flicker: true,
+                        intensity: 30,
+                        explosion: 5
+                });
+
+                let autoLaunchTimer = null;
+
+                // 功能 1: 黑白切換
+                function toggleTheme() {
+                        document.body.classList.toggle('light');
+                }
+
+                // 功能 5: 隱藏介面
+                function toggleUI() {
+                        document.getElementById('main-panel').classList.toggle('hidden');
+                        document.getElementById('countdown').classList.toggle('hidden');
+                }
+
+                // 功能 2 & 4: 倒數與時區
+                function populateTimezones() {
+                        const sel = document.getElementById('timezone');
+                        const zones = ["Asia/Taipei", "UTC", "America/New_York", "Europe/London", "Asia/Tokyo"];
+                        zones.forEach(z => {
+                                let opt = new Option(z, z);
+                                sel.add(opt);
+                        });
+                }
+
+                function updateTime() {
+                        const tz = document.getElementById('timezone').value;
+                        const now = new Date(new Intl.DateTimeFormat('en-US', { timeZone: tz }).format(new Date()));
+                        const nextYear = now.getFullYear() + 1;
+                        const target = new Date(nextYear, 0, 1, 0, 0, 0);
+
+                        const diff = target - now;
+
+                        if (diff <= 0) {
+                                startAutoFireworks(); // 跨年觸發
+                                document.getElementById('countdown').innerText = "HAPPY NEW YEAR!";
+                        } else {
+                                const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+                                const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+                                const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+                                document.getElementById('countdown').innerText = `${h}:${m}:${s}`;
+                        }
+                }
+
+                // 功能 3 & 6: 手動釋放與造型
+                function manualLaunch() {
+                        const activeShapes = Array.from(document.querySelectorAll('.shape:checked')).map(el => el.value);
+                        if (activeShapes.length === 0) return;
+
+                        // 隨機選一個勾選的形狀
+                        const shape = activeShapes[Math.floor(Math.random() * activeShapes.length)];
+                        fireworks.launch(1);
+                        // 註：fireworks-js 主要是粒子流，如需精確文字煙火建議搭配 Canvas Text API
+                }
+
+                // 功能 7: 自動放煙火持續時間
+                function startAutoFireworks() {
+                        if (fireworks.isRunning) return;
+                        const duration = document.getElementById('duration').value * 1000;
+                        fireworks.start();
+                        setTimeout(() => fireworks.stop(), duration);
+                }
+
+                // 功能 8: 文字煙火簡易實現
+                // 注意：文字煙火通常需要特定的粒子路徑庫，此處以 Alert 或 Overlay 模擬
+                function showTextFirework(text) {
+                        const div = document.createElement('div');
+                        div.innerText = text;
+                        div.style.cssText = `position:absolute; top:40%; left:50%; transform:translate(-50%,-50%); 
+                    font-size:5rem; color:gold; text-shadow: 0 0 20px orange; z-index:5;`;
+                        document.body.appendChild(div);
+                        setTimeout(() => div.remove(), 3000);
+                }
+
+                // 初始化
+                populateTimezones();
+                setInterval(updateTime, 1000);
+                window.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'h') toggleUI(); });
+        </script>
+</body>
+
+</html>
