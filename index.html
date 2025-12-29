@@ -27,7 +27,7 @@
         }
     #controls { 
         pointer-events: auto; 
-        background: rgba(66, 66, 66, 0.658); 
+        background: #b2b4ffa6; 
         backdrop-filter: blur(10px); 
         padding: 15px 20px; 
         border-radius: 20px; 
@@ -40,7 +40,8 @@
     button { 
         background: transparent; 
         border: 0px solid rgba(255,255,255,0.5); 
-        color: white; padding: 8px 16px; 
+        color: #1b4cff; 
+        padding: 8px 16px; 
         border-radius: 20px; 
         cursor: pointer; 
         transition: all 0.2s; 
@@ -48,8 +49,8 @@
         white-space: nowrap; 
         }
     button:hover { 
-        background: rgba(255,255,255,0.25); 
-        border-color: white; 
+        background: rgba(255, 255, 255, 0); 
+        border-color: rgb(77, 28, 255); 
         transform: translateY(-2px); 
         }
     button:active { 
@@ -82,7 +83,6 @@
 <div id="ui-container">
     <div id="countdown">00:00:00</div>
     <div id="controls">
-        <span class="label">2026 清晰版動漫煙火控制台</span>
         <button onclick="launchManual('random')">🚀 隨機發射</button>
         <button onclick="launchManual('heart')">❤️ 愛心</button>
         <button onclick="launchManual('ring')">🪐 土星環</button>
