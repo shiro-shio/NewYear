@@ -220,9 +220,9 @@ class Firework {
                 positions[i3+2] += this.velocities[i3+2];
 
                 this.velocities[i3+1] -= 0.02; // 加強重力
-                this.velocities[i3] *= 0.93;   // 加強空氣阻力，讓它停得更快，更像動漫
-                this.velocities[i3+1] *= 0.93;
-                this.velocities[i3+2] *= 0.93;
+                this.velocities[i3] *= 0.85;   // 加強空氣阻力，讓它停得更快，更像動漫
+                this.velocities[i3+1] *= 0.85;
+                this.velocities[i3+2] *= 0.85;
             }
             
             this.geometry.attributes.position.needsUpdate = true;
