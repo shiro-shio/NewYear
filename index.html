@@ -2,292 +2,357 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>2025 Anime Style Fireworks</title>
-
-<!-- 2D 粒子煙火 -->
-<script src="https://unpkg.com/fireworks-js@2.x/dist/index.umd.js"></script>
-
-<!-- Three.js -->
-<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
-
+<title>2025 Realistic Anime Fireworks</title>
 <style>
-/* ========================
-   全域樣式
-======================== */
-:root {
-    --bg: #000;
-    --text: #fff;
-    --panel: rgba(255,255,255,0.12);
-}
-body.light {
-    --bg: #f0f0f0;
-    --text: #000;
-    --panel: rgba(0,0,0,0.15);
-}
-html,body {
-    margin:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    background:var(--bg);
-    color:var(--text);
-    font-family:sans-serif;
-}
-
-/* ========================
-   Layer 分層
-======================== */
-#fw2d {
-    position:fixed;
-    inset:0;
-    z-index:1;
-}
-#ui {
-    position:relative;
-    z-index:10;
-    padding:20px;
-}
-.panel {
-    background:var(--panel);
-    backdrop-filter: blur(10px);
-    padding:15px;
-    border-radius:12px;
-}
-#countdown {
-    text-align:center;
-    font-size:3rem;
-    margin-bottom:20px;
-}
-.hidden { display:none; }
-button { cursor:pointer; }
+    body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Segoe UI', sans-serif; }
+    #ui-container {
+        position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+        text-align: center; z-index: 100; pointer-events: none;
+        color: rgba(255,255,255,0.9); text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+    #countdown { font-size: 4rem; font-weight: 200; letter-spacing: 2px; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+    #controls { pointer-events: auto; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); padding: 10px 20px; border-radius: 30px; display: inline-block; border: 1px solid rgba(255,255,255,0.2); }
+    button { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: white; padding: 5px 15px; border-radius: 15px; cursor: pointer; transition: 0.3s; }
+    button:hover { background: rgba(255,255,255,0.2); border-color: white; }
+    .label { font-size: 0.8rem; margin-right: 10px; opacity: 0.8; }
 </style>
-</head>
 
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+</head>
 <body>
 
-<!-- ========================
-     2D Fireworks 容器
-======================== -->
-<div id="fw2d"></div>
-
-<!-- ========================
-     UI
-======================== -->
-<div id="ui">
+<div id="ui-container">
     <div id="countdown">00:00:00</div>
-
-    <div class="panel" id="panel">
-        <button onclick="toggleTheme()">黑 / 白切換</button>
-        <button onclick="toggleUI()">隱藏 UI (H)</button>
-        <button onclick="manualLaunch()">手動煙火</button>
-        <br><br>
-
-        時區：
-        <select id="timezone"></select>
-        <br><br>
-
-        自動煙火秒數：
-        <input type="number" id="duration" value="10" min="1" style="width:60px;">
+    <div id="controls">
+        <span class="label">2025 新年倒數</span>
+        <button id="btn-sound">🔊 開啟音效 (模擬)</button>
+        <button id="btn-launch" onclick="launchManual()">🚀 發射煙火</button>
     </div>
 </div>
 
-<script>
-/* =====================================================
-   【模組 1】fireworks-js（2D 背景煙火）
-===================================================== */
-const fw2d = new Fireworks.default(
-    document.getElementById("fw2d"),
-    {
-        opacity:0.5,
-        acceleration:1.05,
-        friction:0.97,
-        gravity:1.5,
-        particles:80,
-        intensity:30,
-        flicker:true
-    }
-);
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-/* =====================================================
-   【模組 2】Three.js 動漫風煙火（核心）
-===================================================== */
-let scene, camera, renderer;
-let animeFireworks = [];
+// ==========================================
+// 1. 場景與後處理設定 (核心畫質來源)
+// ==========================================
+const scene = new THREE.Scene();
+// 添加微弱的霧氣讓遠處煙火有景深感
+scene.fog = new THREE.FogExp2(0x000000, 0.002);
 
-/* 初始化 Three.js */
-function initAnimeFireworks(){
-    scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 0, 100);
+camera.lookAt(0, 20, 0);
 
-    camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth/window.innerHeight,
-        1,
-        500
-    );
-    camera.position.z = 120;
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // 優化效能
+renderer.toneMapping = THREE.ReinhardToneMapping;
+document.body.appendChild(renderer.domElement);
 
-    renderer = new THREE.WebGLRenderer({
-        alpha:true,
-        antialias:true
-    });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.domElement.style.position = "fixed";
-    renderer.domElement.style.inset = 0;
-    renderer.domElement.style.zIndex = 3;
-    document.body.appendChild(renderer.domElement);
+// --- Bloom (泛光) 設定 ---
+// 這是讓煙火看起來「美」的關鍵，把亮部渲染得像霓虹燈
+const renderScene = new RenderPass(scene, camera);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+bloomPass.strength = 2.5; // 光暈強度
+bloomPass.radius = 0.8;   // 光暈擴散範圍
+bloomPass.threshold = 0.1; // 亮度閾值
 
-    window.addEventListener("resize", ()=>{
-        camera.aspect = window.innerWidth/window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+const composer = new EffectComposer(renderer);
+composer.addPass(renderScene);
+composer.addPass(bloomPass);
 
-    animateAnimeFireworks();
+// ==========================================
+// 2. 資源生成 (程式化貼圖)
+// ==========================================
+function createGlowTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32; canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gradient.addColorStop(0, 'rgba(255,255,255,1)');
+    gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');
+    gradient.addColorStop(0.5, 'rgba(255,255,255,0.2)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0,0,32,32);
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
 }
+const particleTexture = createGlowTexture();
 
-/* 建立一發動漫煙火 */
-function createAnimeFirework(){
-    const count = 700;
-    const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array(count*3);
-    const vel = new Float32Array(count*3);
-    const col = new Float32Array(count*3);
+// ==========================================
+// 3. 煙火系統核心邏輯
+// ==========================================
+const fireworks = [];
 
-    const hue = Math.random()*360;
+// 配色盤 (HSL)
+const colors = [
+    { h: 0, s: 100, l: 60 },    // 紅
+    { h: 30, s: 100, l: 60 },   // 橙
+    { h: 60, s: 100, l: 60 },   // 金
+    { h: 120, s: 100, l: 60 },  // 綠
+    { h: 180, s: 100, l: 60 },  // 青
+    { h: 240, s: 100, l: 70 },  // 藍
+    { h: 300, s: 100, l: 60 },  // 紫
+];
 
-    for(let i=0;i<count;i++){
-        const i3=i*3;
-        pos[i3]=pos[i3+1]=pos[i3+2]=0;
+class Firework {
+    constructor(startX, targetY) {
+        this.isDead = false;
+        this.phase = 'launch'; // launch (升空) -> explode (爆炸)
+        
+        // 設定顏色
+        const baseColor = colors[Math.floor(Math.random() * colors.length)];
+        this.color = new THREE.Color().setHSL(baseColor.h/360, baseColor.s/100, baseColor.l/100);
+        
+        // --- 升空階段設定 ---
+        this.pos = new THREE.Vector3(startX, -40, 0); // 從畫面下方開始
+        this.vel = new THREE.Vector3(0, (Math.random() * 0.5 + 1.2), 0); // 向上速度
+        this.targetY = targetY + (Math.random() * 10 - 5);
+        
+        // 建立升空粒子 (Rocket)
+        const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0)]);
+        const mat = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 1.5,
+            map: particleTexture,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        this.rocket = new THREE.Points(geo, mat);
+        this.rocket.position.copy(this.pos);
+        scene.add(this.rocket);
 
-        const theta=Math.random()*Math.PI*2;
-        const phi=Math.acos(Math.random()*2-1);
-        const speed=Math.random()*2+2;
-
-        vel[i3]=Math.sin(phi)*Math.cos(theta)*speed;
-        vel[i3+1]=Math.cos(phi)*speed;
-        vel[i3+2]=Math.sin(phi)*Math.sin(theta)*speed;
-
-        const c=new THREE.Color(`hsl(${hue+Math.random()*40},100%,70%)`);
-        col[i3]=c.r; col[i3+1]=c.g; col[i3+2]=c.b;
+        // --- 爆炸粒子群 (預先定義，但暫時隱藏) ---
+        this.particles = null; 
+        this.geometry = null;
     }
 
-    geo.setAttribute("position", new THREE.BufferAttribute(pos,3));
-    geo.setAttribute("velocity", new THREE.BufferAttribute(vel,3));
-    geo.setAttribute("color", new THREE.BufferAttribute(col,3));
+    update() {
+        if (this.phase === 'launch') {
+            // 物理移動
+            this.pos.add(this.vel);
+            this.rocket.position.copy(this.pos);
 
-    const mat = new THREE.PointsMaterial({
-        size:1.8,
-        vertexColors:true,
-        transparent:true,
-        opacity:1,
-        blending:THREE.AdditiveBlending,
-        depthWrite:false
-    });
+            // 隨機抖動模擬風阻
+            this.pos.x += (Math.random() - 0.5) * 0.1;
 
-    const points = new THREE.Points(geo,mat);
-    points.position.set(
-        (Math.random()-0.5)*80,
-        (Math.random()-0.5)*40,
-        (Math.random()-0.5)*40
-    );
+            // 拖尾效果 (簡單模擬：在當前位置產生一個快速消失的小點，這裡省略以保效能，改用 Bloom 增強視覺殘留)
 
-    scene.add(points);
-    animeFireworks.push({mesh:points, life:120});
-}
+            // 檢查是否到達頂點
+            if (this.vel.y > 0.1 && this.pos.y < this.targetY) {
+                this.vel.y *= 0.98; // 減速
+            } else {
+                this.explode();
+            }
+        } 
+        else if (this.phase === 'explode') {
+            const positions = this.geometry.attributes.position.array;
+            
+            // 更新每一個爆炸粒子
+            for (let i = 0; i < this.count; i++) {
+                const i3 = i * 3;
+                
+                // 速度應用
+                positions[i3] += this.velocities[i3];
+                positions[i3+1] += this.velocities[i3+1];
+                positions[i3+2] += this.velocities[i3+2];
 
-/* Three.js 動畫循環 */
-function animateAnimeFireworks(){
-    requestAnimationFrame(animateAnimeFireworks);
+                // 重力與阻力
+                this.velocities[i3+1] -= 0.015; // 重力
+                this.velocities[i3] *= 0.96;    // 空氣阻力
+                this.velocities[i3+1] *= 0.96;
+                this.velocities[i3+2] *= 0.96;
+            }
+            
+            this.geometry.attributes.position.needsUpdate = true;
+            
+            // 漸隱
+            this.material.opacity -= 0.012;
+            this.material.size *= 0.99; // 粒子慢慢變小
+            
+            if (this.material.opacity <= 0) {
+                this.isDead = true;
+                scene.remove(this.particles);
+                this.geometry.dispose();
+                this.material.dispose();
+            }
+        }
+    }
 
-    animeFireworks.forEach((fw,i)=>{
-        const p=fw.mesh.geometry.attributes.position.array;
-        const v=fw.mesh.geometry.attributes.velocity.array;
+    explode() {
+        this.phase = 'explode';
+        scene.remove(this.rocket); // 移除升空火箭
 
-        for(let j=0;j<p.length;j+=3){
-            p[j]+=v[j];
-            p[j+1]+=v[j+1];
-            p[j+2]+=v[j+2];
-            v[j+1]-=0.02;
-            v[j]*=0.985; v[j+1]*=0.985; v[j+2]*=0.985;
+        // 建立爆炸幾何體
+        this.count = 400 + Math.floor(Math.random() * 300); // 粒子數量
+        this.geometry = new THREE.BufferGeometry();
+        this.velocities = new Float32Array(this.count * 3);
+        const positions = new Float32Array(this.count * 3);
+        const colorsArr = new Float32Array(this.count * 3);
+
+        for (let i = 0; i < this.count; i++) {
+            // 球形爆炸算法 (Spherical distribution)
+            const r = Math.random() * 0.5 + 0.1; // 爆炸初始半徑
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            
+            // 初始位置 (稍微分散在中心)
+            positions[i*3] = this.pos.x + r * Math.sin(phi) * Math.cos(theta);
+            positions[i*3+1] = this.pos.y + r * Math.sin(phi) * Math.sin(theta);
+            positions[i*3+2] = this.pos.z + r * Math.cos(phi);
+
+            // 爆炸速度 (Power)
+            const power = Math.random() * 1.5 + 0.5;
+            this.velocities[i*3] = Math.sin(phi) * Math.cos(theta) * power;
+            this.velocities[i*3+1] = Math.sin(phi) * Math.sin(theta) * power;
+            this.velocities[i*3+2] = Math.cos(phi) * power;
+
+            // 顏色變異 (讓每個粒子顏色稍微不同，更豐富)
+            const colorVar = this.color.clone().offsetHSL(0, 0, (Math.random()-0.5)*0.2);
+            colorsArr[i*3] = colorVar.r;
+            colorsArr[i*3+1] = colorVar.g;
+            colorsArr[i*3+2] = colorVar.b;
         }
 
-        fw.mesh.geometry.attributes.position.needsUpdate=true;
-        fw.mesh.material.opacity-=0.008;
-        fw.life--;
+        this.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        this.geometry.setAttribute('color', new THREE.BufferAttribute(colorsArr, 3));
 
-        if(fw.life<=0){
-            scene.remove(fw.mesh);
-            animeFireworks.splice(i,1);
+        this.material = new THREE.PointsMaterial({
+            size: 2.5,
+            map: particleTexture,
+            vertexColors: true,
+            transparent: true,
+            opacity: 1,
+            blending: THREE.AdditiveBlending, // 關鍵：加法混合讓重疊處變亮
+            depthWrite: false
+        });
+
+        this.particles = new THREE.Points(this.geometry, this.material);
+        scene.add(this.particles);
+        
+        // 簡易閃光 (Flash)
+        createFlash(this.pos, this.color);
+    }
+}
+
+// 爆炸瞬間的閃光球體 (讓視覺衝擊更強)
+function createFlash(pos, color) {
+    const geo = new THREE.SphereGeometry(1, 16, 16);
+    const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.8 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(pos);
+    scene.add(mesh);
+    
+    // 獨立的閃光動畫邏輯
+    const animateFlash = () => {
+        mesh.scale.multiplyScalar(1.2); // 快速變大
+        mesh.material.opacity *= 0.85;  // 快速消失
+        if (mesh.material.opacity < 0.01) {
+            scene.remove(mesh);
+            geo.dispose();
+            mat.dispose();
+        } else {
+            requestAnimationFrame(animateFlash);
         }
-    });
-
-    renderer.render(scene,camera);
+    };
+    animateFlash();
 }
 
-/* =====================================================
-   【模組 3】倒數計時（時區安全）
-===================================================== */
-function nowInTZ(tz){
-    return new Date(new Date().toLocaleString("en-US",{timeZone:tz}));
+
+// ==========================================
+// 4. 動畫迴圈
+// ==========================================
+function animate() {
+    requestAnimationFrame(animate);
+
+    // 清理結束的煙火
+    for (let i = fireworks.length - 1; i >= 0; i--) {
+        fireworks[i].update();
+        if (fireworks[i].isDead) {
+            fireworks.splice(i, 1);
+        }
+    }
+
+    // 使用 composer 渲染 Bloom 效果
+    composer.render();
+}
+animate();
+
+// ==========================================
+// 5. 互動與倒數邏輯
+// ==========================================
+window.launchManual = () => {
+    // x 範圍 -40 ~ 40, y 高度 20 ~ 40
+    const x = (Math.random() - 0.5) * 80;
+    const y = 20 + Math.random() * 20;
+    fireworks.push(new Firework(x, y));
+};
+
+// 自動施放邏輯
+let autoInterval = null;
+function startAutoFire() {
+    if(autoInterval) return;
+    autoInterval = setInterval(() => {
+        launchManual();
+        // 有機率一次放兩發
+        if(Math.random() > 0.7) setTimeout(launchManual, 200);
+    }, 800);
 }
 
-function updateTime(){
-    const tz=timezone.value;
-    const now=nowInTZ(tz);
-    const target=new Date(now.getFullYear()+1,0,1);
-    const diff=target-now;
+// 倒數計時
+const countdownEl = document.getElementById('countdown');
+const targetDate = new Date(new Date().getFullYear() + 1, 0, 1); // 明年 1/1
 
-    if(diff<=0){
-        countdown.innerText="🎆 HAPPY NEW YEAR 🎆";
-        startAutoFireworks();
+function updateCountdown() {
+    const now = new Date();
+    const diff = targetDate - now;
+
+    if (diff <= 0) {
+        countdownEl.innerText = "2025 HAPPY NEW YEAR";
+        startAutoFire();
         return;
     }
 
-    const h=String(diff/3600000|0).padStart(2,"0");
-    const m=String(diff%3600000/60000|0).padStart(2,"0");
-    const s=String(diff%60000/1000|0).padStart(2,"0");
-    countdown.innerText=`${h}:${m}:${s}`;
+    const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+    countdownEl.innerText = `${h}:${m}:${s}`;
 }
+setInterval(updateCountdown, 1000);
 
-/* =====================================================
-   【模組 4】操作整合入口
-===================================================== */
-function manualLaunch(){
-    fw2d.launch(2);
-    createAnimeFirework();
-}
-
-function startAutoFireworks(){
-    const ms=duration.value*1000;
-    fw2d.start();
-    const t=setInterval(createAnimeFirework,400);
-    setTimeout(()=>{
-        fw2d.stop();
-        clearInterval(t);
-    },ms);
-}
-
-function toggleTheme(){ document.body.classList.toggle("light"); }
-function toggleUI(){
-    panel.classList.toggle("hidden");
-    countdown.classList.toggle("hidden");
-}
-
-/* =====================================================
-   初始化
-===================================================== */
-["Asia/Taipei","UTC","Asia/Tokyo","America/New_York"]
-.forEach(z=>timezone.add(new Option(z,z)));
-timezone.value="Asia/Taipei";
-
-initAnimeFireworks();
-setInterval(updateTime,1000);
-
-window.addEventListener("keydown",e=>{
-    if(e.key.toLowerCase()==="h") toggleUI();
+// RWD
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
 });
-</script>
 
+// 音效控制 (簡單模擬)
+let soundEnabled = false;
+document.getElementById('btn-sound').addEventListener('click', (e) => {
+    soundEnabled = !soundEnabled;
+    e.target.innerText = soundEnabled ? "🔊 音效已開" : "🔇 音效已關";
+    e.target.style.opacity = soundEnabled ? 1 : 0.7;
+});
+
+// 手動發射幾發做開場
+setTimeout(launchManual, 500);
+setTimeout(launchManual, 1200);
+
+</script>
 </body>
 </html>
