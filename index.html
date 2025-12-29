@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>2025 3D 跨年煙火秀</title>
+    <script src="https://unpkg.com/fireworks-js@2.x/dist/index.umd.js"></script>
+    <style>
+        :root { --bg: #000; --text: #fff; --panel-bg: rgba(255,255,255,0.1); }
+        body.light { --bg: #f0f0f0; --text: #000; --panel-bg: rgba(0,0,0,0.1); }
+        
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: sans-serif; transition: 0.3s; }
+        #fireworks-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        #ui-layer { position: relative; z-index: 10; padding: 20px; pointer-events: none; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+        .panel { background: var(--panel-bg); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; pointer-events: auto; width: fit-content; }
+        
+        #countdown { font-size: 3rem; font-weight: bold; text-align: center; margin-top: 50px; }
+        .hidden { display: none !important; }
+        .controls { display: grid; gap: 10px; }
+        button { cursor: pointer; padding: 5px 10px; }
+    </style>
+</head>
+<body class="dark">
+    <div id="fireworks-container"></div>
+
+    <div id="ui-layer">
+        <div id="countdown">00:00:00</div>
+
+        <div class="panel" id="main-panel">
+            <div class="controls">
+                <div>
+                    <button onclick="toggleTheme()">切換黑/白底</button>
+                    <button onclick="toggleUI()">隱藏介面 (H)</button>
+                    <button onclick="manualLaunch()">手動放煙火</button>
+                </div>
+                
+                <div>
+                    時區: <select id="timezone" onchange="updateTime()"></select>
+                </div>
+
+                <div>
+                    造型選擇:
+                    <label><input type="checkbox" class="shape" value="circle" checked> 圓形</label>
+                    <label><input type="checkbox" class="shape" value="explosion" checked> 爆炸</label>
+                    <label><input type="checkbox" class="shape" value="star"> 星形</label>
+                </div>
+
+                <div>
+                    自動持續時間 (秒): 
+                    <input type="number" id="duration" value="10" min="1" style="width: 50px;">
+                </div>
+            </div>
+        </div>
+    </div>
