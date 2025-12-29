@@ -43,6 +43,8 @@
         <button onclick="launchManual('ring')">🪐 土星環</button>
         <button onclick="launchManual('text', '2026 新年快樂')">🧧 2026 新年快樂</button>
         <button onclick="launchManual('text', 'Happy New Year')">🎉 Happy New Year</button>
+        <button onclick="document.getElementById('file-input').click()">🖼️ 上傳圖片煙火</button>
+        <input type="file" id="file-input" style="display:none" accept="image/*">
     </div>
 </div>
 
@@ -137,6 +139,53 @@ function createTextPoints(text, size = 10) {
     }
     return points;
 }
+
+// 新增：圖片轉點陣函式
+function getImagePoints(image, size = 30) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 縮放圖片以優化效能，寬度設定為 100 像素
+    const scale = 100 / image.width;
+    canvas.width = 100;
+    canvas.height = image.height * scale;
+    
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const points = [];
+    
+    const step = 2; // 採樣步長，越小越清晰但越吃效能
+    for (let y = 0; y < canvas.height; y += step) {
+        for (let x = 0; x < canvas.width; x += step) {
+            const index = (y * canvas.width + x) * 4;
+            const alpha = data[index + 3];
+            if (alpha > 128) { // 只選取不透明的點
+                points.push({
+                    x: (x - canvas.width / 2) * (size / 100),
+                    y: -(y - canvas.height / 2) * (size / 100),
+                    color: new THREE.Color(data[index]/255, data[index+1]/255, data[index+2]/255)
+                });
+            }
+        }
+    }
+    return points;
+}
+
+// 監聽檔案上傳
+document.getElementById('file-input').addEventListener('change', function(e) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            // 存儲圖片點陣數據
+            window.customImageData = getImagePoints(img);
+            launchManual('image');
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(e.target.files[0]);
+});
 
 // ==========================================
 // 3. 系統核心 (加入隨機大小)
@@ -283,6 +332,16 @@ class Firework {
                  const r = speed * 0.7;
                  points.push({ vx: r*Math.sin(phi)*Math.cos(theta), vy: r*Math.sin(phi)*Math.sin(theta), vz: r*Math.cos(phi) });
             }
+        }
+        else if (this.type === 'image' && window.customImageData) {
+        window.customImageData.forEach(p => {
+                points.push({
+                vx: p.x * 0.1, // 控制爆炸後的擴張速度
+                vy: p.y * 0.1,
+                vz: (Math.random() - 0.5) * 0.1,
+                overrideColor: p.color // 傳遞圖片原始顏色
+                });
+        });
         }
         else { // Sphere
             const count = 600; // 增加粒子數
