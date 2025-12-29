@@ -2,19 +2,17 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>2026 Sharp Anime Fireworks</title>
+<title>2026 OBS Fireworks</title>
 <style>
-    /* --- 關鍵修改：背景由 CSS 控制 --- */
+    /* 預設背景為透明，這對 OBS 來說是最完美的 */
     body { 
         margin: 0; 
         overflow: hidden; 
+        background-color: transparent; /* 關鍵：CSS 背景透明 */
         font-family: 'Segoe UI', sans-serif; 
-        /* 這裡放你的背景圖片或顏色 */
-        background: radial-gradient(circle at bottom, #1b2735 0%, #090a0f 100%);
-        background-size: cover;
-        background-repeat: no-repeat;
     }
 
+    /* UI 介面設定 */
     #ui-container {
         position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
         text-align: center; z-index: 100; pointer-events: none;
@@ -22,25 +20,26 @@
         width: 90%;
     }
     #countdown { font-size: 3rem; font-weight: 200; letter-spacing: 2px; margin-bottom: 15px; font-variant-numeric: tabular-nums; }
-    #controls { pointer-events: auto; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); padding: 15px 20px; border-radius: 20px; display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 8px; border: 1px solid rgba(255,255,255,0.15); }
-    button { background: transparent; border: 1px solid rgba(255,255,255,0.5); color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; white-space: nowrap; }
-    button:hover { background: rgba(255,255,255,0.25); border-color: white; transform: translateY(-2px); }
-    button:active { transform: translateY(0px); }
-    .label { width: 100%; font-size: 0.8rem; opacity: 0.7; margin-bottom: 8px; display: block; }
     
-    /* 確保 Canvas 在最上層但背景透明 */
-    canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
-        pointer-events: none; /* 讓滑鼠事件能穿透 Canvas 到背景(如果需要) */
+    /* 控制面板樣式 */
+    #controls { 
+        pointer-events: auto; 
+        background: rgba(0,0,0,0.5); /* 半透明黑底讓按鈕看得見 */
+        backdrop-filter: blur(5px); 
+        padding: 15px 20px; 
+        border-radius: 20px; 
+        display: inline-flex; 
+        flex-wrap: wrap; 
+        justify-content: center; 
+        gap: 8px; 
+        border: 1px solid rgba(255,255,255,0.15); 
     }
     
-    @media (max-width: 600px) {
-        #countdown { font-size: 2rem; }
-        button { padding: 6px 12px; font-size: 0.8rem; }
-    }
+    button { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.5); color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-size: 0.9rem; white-space: nowrap; }
+    button:hover { background: rgba(255,255,255,0.3); transform: translateY(-2px); }
+    
+    /* 讓 Canvas 保持在背景 */
+    canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
 </style>
 
 <script type="importmap">
@@ -57,16 +56,14 @@
 <div id="ui-container">
     <div id="countdown">00:00:00</div>
     <div id="controls">
-        <span class="label">2026 清晰版動漫煙火控制台</span>
-        <button onclick="toggleTheme()">切換 CSS 背景</button>
-        <button onclick="launchManual('random')">🚀 隨機發射</button>
+        <span style="display:block; width:100%; font-size:0.8rem; margin-bottom:5px; opacity:0.8;">OBS 專用控制台</span>
+        <button onclick="cycleBackground()" style="background: #ff9800; border-color: #ff9800; color: black; font-weight: bold;">🎨 切換背景 (目前: 透明)</button>
+        
+        <button onclick="launchManual('random')">🚀 發射</button>
         <button onclick="launchManual('heart')">❤️ 愛心</button>
-        <button onclick="launchManual('ring')">🪐 土星環</button>
-        <button onclick="launchManual('text', '2026 新年快樂')">🧧 2026 新年快樂</button>
-        <button onclick="launchManual('text', 'Happy New Year')">🎉 Happy New Year</button>
-        <button onclick="launchManual('image');">圖片煙火</button>
-        <button onclick="document.getElementById('file-input').click()">🖼️ 上傳圖片煙火</button>
-        <input type="file" id="file-input" style="display:none" accept="image/*">
+        <button onclick="launchManual('ring')">🪐 土星</button>
+        <button onclick="launchManual('text', '2026')">📝 2026</button>
+        <button onclick="toggleUI()">👁️ 隱藏UI</button>
     </div>
 </div>
 
@@ -77,33 +74,32 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 // ==========================================
-// 1. 場景與後處理設定 (修正透明度問題)
+// 1. 場景設定 (OBS 優化版)
 // ==========================================
 const scene = new THREE.Scene();
-// 【關鍵修改】：移除 Fog，因為 Fog 會把透明的地方塗上顏色，導致 CSS 背景看不見
-scene.fog = null; 
+scene.fog = null; // 絕對不能有霧，否則無法去背
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
 camera.position.set(0, 0, 160);
 camera.lookAt(0, 40, 0);
 
-// 【關鍵修改】：alpha: true 是必須的
 const renderer = new THREE.WebGLRenderer({ 
     antialias: false, 
     powerPreference: "high-performance", 
-    alpha: true 
+    alpha: true // 關鍵：開啟 WebGL 透明通道
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 
-// 【關鍵修改】：設定清除顏色為全透明 (Alpha = 0)
+// 預設：完全透明
 renderer.setClearColor(0x000000, 0); 
+
 document.body.appendChild(renderer.domElement);
 
 const renderScene = new RenderPass(scene, camera);
-// 【關鍵修改】：RenderPass 也要確保清除成透明
+// 確保 RenderPass 也是清除為透明
 renderScene.clearColor = new THREE.Color(0x000000);
 renderScene.clearAlpha = 0; 
 
@@ -116,23 +112,50 @@ const composer = new EffectComposer(renderer);
 composer.addPass(renderScene);
 composer.addPass(bloomPass);
 
-// 修改主題切換功能：只切換 CSS 背景，不改變 Canvas 的透明度
-let isDarkMode = true;
-window.toggleTheme = () => {
-    isDarkMode = !isDarkMode;
-    if (isDarkMode) {
-        // 深色背景 (適合煙火)
-        document.body.style.background = 'radial-gradient(circle at bottom, #1b2735 0%, #090a0f 100%)';
+// ==========================================
+// 背景切換邏輯 (OBS 綠幕/透明/黑底)
+// ==========================================
+let bgMode = 0; // 0:透明, 1:綠幕, 2:黑底
+window.cycleBackground = () => {
+    bgMode = (bgMode + 1) % 3;
+    const btn = document.querySelector('button[onclick="cycleBackground()"]');
+    
+    if (bgMode === 0) {
+        // --- 透明模式 (OBS 最佳) ---
+        document.body.style.backgroundColor = 'transparent';
+        renderer.setClearColor(0x000000, 0);
+        renderScene.clearColor = new THREE.Color(0x000000);
+        renderScene.clearAlpha = 0;
+        btn.innerText = "🎨 切換背景 (目前: 透明)";
+        btn.style.backgroundColor = "#ff9800";
+    } else if (bgMode === 1) {
+        // --- 綠幕模式 (色鍵去背用) ---
+        // 使用純綠 #00FF00
+        document.body.style.backgroundColor = '#00FF00';
+        // WebGL 必須渲染出綠色背景，Alpha 設為 1
+        renderer.setClearColor(0x00FF00, 1);
+        renderScene.clearColor = new THREE.Color(0x00FF00);
+        renderScene.clearAlpha = 1;
+        btn.innerText = "🎨 切換背景 (目前: 綠幕)";
+        btn.style.backgroundColor = "#4CAF50";
     } else {
-        // 淺色背景 (煙火會比較不明顯，這是物理限制)
-        document.body.style.background = 'linear-gradient(to top, #dfe9f3 0%, white 100%)';
+        // --- 黑底模式 (濾色/變亮用) ---
+        document.body.style.backgroundColor = '#000000';
+        renderer.setClearColor(0x000000, 1);
+        renderScene.clearColor = new THREE.Color(0x000000);
+        renderScene.clearAlpha = 1;
+        btn.innerText = "🎨 切換背景 (目前: 黑底)";
+        btn.style.backgroundColor = "#333";
     }
-    // 注意：不再去動 renderer.setClearColor，讓它永遠保持透明
 };
 
+window.toggleUI = () => {
+    const ui = document.getElementById('ui-container');
+    ui.style.display = ui.style.display === 'none' ? 'block' : 'none';
+};
 
 // ==========================================
-// 2. 資源生成 (保持不變)
+// 2. 資源與粒子 (維持高品質)
 // ==========================================
 function createGlowTexture() {
     const canvas = document.createElement('canvas');
@@ -168,8 +191,7 @@ function createTextPoints(text, size = 10) {
     const step = 5;
     for(let y = 0; y < canvas.height; y += step) {
         for(let x = 0; x < canvas.width; x += step) {
-            const index = (y * canvas.width + x) * 4;
-            if(data[index + 3] > 128) { 
+            if(data[(y * canvas.width + x) * 4 + 3] > 128) { 
                 points.push({
                     x: (x - canvas.width / 2) * (size / fontSize),
                     y: -(y - canvas.height / 2) * (size / fontSize)
@@ -180,48 +202,8 @@ function createTextPoints(text, size = 10) {
     return points;
 }
 
-function getImagePoints(image, size = 30) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const scale = 200 / image.width;
-    canvas.width = 200;
-    canvas.height = image.height * scale;
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const points = [];
-    const step = 2;
-    for (let y = 0; y < canvas.height; y += step) {
-        for (let x = 0; x < canvas.width; x += step) {
-            const index = (y * canvas.width + x) * 4;
-            const alpha = data[index + 3];
-            if (alpha > 128) {
-                points.push({
-                    x: (x - canvas.width / 2) * (size / 100),
-                    y: -(y - canvas.height / 2) * (size / 100),
-                    color: new THREE.Color(data[index]/255, data[index+1]/255, data[index+2]/255)
-                });
-            }
-        }
-    }
-    return points;
-}
-
-document.getElementById('file-input').addEventListener('change', function(e) {
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-            window.customImageData = getImagePoints(img);
-            launchManual('image');
-        };
-        img.src = event.target.result;
-    };
-    reader.readAsDataURL(e.target.files[0]);
-});
-
 // ==========================================
-// 3. 系統核心 (保持不變)
+// 3. 煙火系統
 // ==========================================
 const fireworks = [];
 const trails = [];
@@ -233,7 +215,6 @@ class TrailParticle {
         this.life = 1.0;
         this.decay = 0.02 + Math.random() * 0.02;
         this.color = color;
-        this.size = 2.0 + Math.random();
     }
     update() {
         this.pos.add(this.vel);
@@ -252,18 +233,14 @@ class Firework {
         this.color = new THREE.Color().setHSL(hue/360, 1, 0.65);
         if (type === 'heart') this.color.setHex(0xff3366); 
         if (type === 'text') this.color.setHSL(45/360, 1, 0.7);
+
         this.pos = new THREE.Vector3(startX, -50, 0);
         this.vel = new THREE.Vector3(0, (Math.random() * 0.5 + 1.8), 0);
         this.targetY = targetY;
         
         const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0)]);
         const mat = new THREE.PointsMaterial({
-            color: this.color,
-            size: 3.5,
-            map: particleTexture,
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
+            color: this.color, size: 3.5, map: particleTexture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false
         });
         this.rocket = new THREE.Points(geo, mat);
         this.rocket.position.copy(this.pos);
@@ -276,12 +253,8 @@ class Firework {
             this.pos.add(this.vel);
             this.rocket.position.copy(this.pos);
             this.vel.y *= 0.985;
-            if (Math.random() > 0.1) {
-                trails.push(new TrailParticle(this.pos, this.color));
-            }
-            if (this.vel.y < 0.3 || this.pos.y >= this.targetY) {
-                this.explode();
-            }
+            if (Math.random() > 0.1) trails.push(new TrailParticle(this.pos, this.color));
+            if (this.vel.y < 0.3 || this.pos.y >= this.targetY) this.explode();
         } 
         else if (this.phase === 'explode') {
             const positions = this.geometry.attributes.position.array;
@@ -308,52 +281,25 @@ class Firework {
 
     getShapePoints() {
         const points = [];
-        const baseSpeed = (this.type === 'text' ? 0.5 : 1.0);
-        const speed = baseSpeed + Math.random() * 0.4;
-
+        const speed = 1.0 + Math.random() * 0.4;
         if (this.type === 'text') {
-            const rawPoints = createTextPoints(this.textContent, 25);
-            rawPoints.forEach(p => {
-                points.push({ vx: p.x * 0.05, vy: p.y * 0.05, vz: (Math.random() - 0.5) * 0.5 });
-            });
-             for(let i=0; i<150; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const r = Math.random() * 4;
-                points.push({ vx: Math.cos(angle)*r, vy: Math.sin(angle)*r, vz: (Math.random()-0.5)*4 });
+            createTextPoints(this.textContent, 25).forEach(p => points.push({ vx: p.x * 0.05, vy: p.y * 0.05, vz: (Math.random()-0.5)*0.5 }));
+        } else if (this.type === 'heart') {
+            for (let i=0; i<500; i++) {
+                const t = (i/500)*Math.PI*2;
+                const x = 16*Math.pow(Math.sin(t),3);
+                const y = 13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
+                points.push({vx:(x/12)*speed, vy:(y/12)*speed, vz:(Math.random()-0.5)*0.5});
             }
-        }
-        else if (this.type === 'heart') {
-            for (let i = 0; i < 500; i++) {
-                const t = (i / 500) * Math.PI * 2;
-                const x = 16 * Math.pow(Math.sin(t), 3);
-                const y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-                points.push({ vx: (x/12)*speed, vy: (y/12)*speed, vz: (Math.random()-0.5)*0.5 });
+        } else if (this.type === 'ring') {
+            for (let i=0; i<400; i++) {
+                const angle = (i/400)*Math.PI*2;
+                points.push({vx:Math.cos(angle)*speed*2, vy:Math.sin(angle)*speed*0.1, vz:Math.sin(angle)*speed*2});
             }
-        }
-        else if (this.type === 'ring') {
-            for (let i = 0; i < 400; i++) {
-                const angle = (i / 400) * Math.PI * 2;
-                points.push({ vx: Math.cos(angle) * speed * 2.0, vy: Math.sin(angle) * speed * 0.1, vz: Math.sin(angle) * speed * 2.0 });
-            }
-            for (let i=0; i<150; i++) {
-                 const theta = Math.random() * Math.PI * 2;
-                 const phi = Math.acos((Math.random() * 2) - 1);
-                 const r = speed * 0.7;
-                 points.push({ vx: r*Math.sin(phi)*Math.cos(theta), vy: r*Math.sin(phi)*Math.sin(theta), vz: r*Math.cos(phi) });
-            }
-        }
-        else if (this.type === 'image' && window.customImageData) {
-            window.customImageData.forEach(p => {
-                points.push({ vx: p.x * 0.1, vy: p.y * 0.1, vz: (Math.random() - 0.5) * 0.1, overrideColor: p.color });
-            });
-        }
-        else { 
-            const count = 600;
-            for (let i = 0; i < count; i++) {
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos((Math.random() * 2) - 1);
-                const r = speed * (0.9 + Math.random() * 0.5); 
-                points.push({ vx: r * Math.sin(phi) * Math.cos(theta), vy: r * Math.sin(phi) * Math.sin(theta), vz: r * Math.cos(phi) });
+        } else {
+            for (let i=0; i<600; i++) {
+                const theta = Math.random()*Math.PI*2, phi = Math.acos((Math.random()*2)-1), r = speed*(0.9+Math.random()*0.5);
+                points.push({vx:r*Math.sin(phi)*Math.cos(theta), vy:r*Math.sin(phi)*Math.sin(theta), vz:r*Math.cos(phi)});
             }
         }
         return points;
@@ -362,55 +308,31 @@ class Firework {
     explode() {
         this.phase = 'explode';
         scene.remove(this.rocket);
-
         const shapeData = this.getShapePoints();
         this.count = shapeData.length;
-        
         this.geometry = new THREE.BufferGeometry();
         this.velocities = new Float32Array(this.count * 3);
         const positions = new Float32Array(this.count * 3);
         const colorsArr = new Float32Array(this.count * 3);
 
         for (let i = 0; i < this.count; i++) {
-            positions[i*3] = this.pos.x;
-            positions[i*3+1] = this.pos.y;
-            positions[i*3+2] = this.pos.z;
-
+            positions[i*3] = this.pos.x; positions[i*3+1] = this.pos.y; positions[i*3+2] = this.pos.z;
             this.velocities[i*3] = shapeData[i].vx * this.explosionScale;
             this.velocities[i*3+1] = shapeData[i].vy * this.explosionScale;
             this.velocities[i*3+2] = shapeData[i].vz * this.explosionScale;
-
-            let c = this.color.clone();
-            if (shapeData[i].overrideColor) c = shapeData[i].overrideColor.clone();
-            c.offsetHSL(0, (Math.random()-0.5)*0.2, (Math.random()-0.5)*0.1);
-            
-            colorsArr[i*3] = c.r;
-            colorsArr[i*3+1] = c.g;
-            colorsArr[i*3+2] = c.b;
+            const c = this.color.clone().offsetHSL(0, (Math.random()-0.5)*0.2, (Math.random()-0.5)*0.1);
+            colorsArr[i*3] = c.r; colorsArr[i*3+1] = c.g; colorsArr[i*3+2] = c.b;
         }
-
         this.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         this.geometry.setAttribute('color', new THREE.BufferAttribute(colorsArr, 3));
-
-        this.material = new THREE.PointsMaterial({
-            size: (this.type === 'text' ? 2.8 : 3.5) * (this.explosionScale * 0.8),
-            map: particleTexture,
-            vertexColors: true,
-            transparent: true,
-            opacity: 1,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
-        });
-
+        this.material = new THREE.PointsMaterial({ size: 3.0 * this.explosionScale, map: particleTexture, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
         this.particles = new THREE.Points(this.geometry, this.material);
         scene.add(this.particles);
     }
 }
 
 const trailGeo = new THREE.BufferGeometry();
-const trailMat = new THREE.PointsMaterial({
-    color: 0xffffff, size: 3.0, map: particleTexture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, vertexColors: true,
-});
+const trailMat = new THREE.PointsMaterial({ color: 0xffffff, size: 3.0, map: particleTexture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, vertexColors: true });
 const trailMesh = new THREE.Points(trailGeo, trailMat);
 scene.add(trailMesh);
 
@@ -419,8 +341,7 @@ function updateGlobalTrails() {
         trails[i].update();
         if (trails[i].life <= 0) trails.splice(i, 1);
     }
-    const positions = [];
-    const colors = [];
+    const positions = [], colors = [];
     trails.forEach(t => {
         positions.push(t.pos.x, t.pos.y, t.pos.z);
         const intensity = t.life * t.life; 
@@ -445,53 +366,29 @@ animate();
 
 window.launchManual = (type = 'random', text = '') => {
     let finalType = type;
-    if (type === 'random') {
-        const types = ['sphere', 'sphere', 'sphere', 'ring', 'heart','image'];
-        finalType = types[Math.floor(Math.random() * types.length)];
-    }
-    const x = (Math.random() - 0.5) * 250;
-    const yBase = (finalType === 'text' || finalType === 'heart') ? 45 : 30;
-    const y = yBase + Math.random() * 200; 
+    if (type === 'random') finalType = ['sphere', 'sphere', 'ring', 'heart'][Math.floor(Math.random()*4)];
+    const x = (Math.random()-0.5)*250;
+    const y = (finalType==='text'||finalType==='heart' ? 45:30) + Math.random()*200; 
     fireworks.push(new Firework(x, y, finalType, text));
 };
 
-let autoInterval = null;
 const countdownEl = document.getElementById('countdown');
-const targetDate = new Date(new Date().getFullYear() + 1, 0, 1);
-
-function startAutoFire() {
-    if(autoInterval) return;
-    autoInterval = setInterval(() => {
-        const r = Math.random();
-        if (r > 0.92) launchManual('text', '2026 新年快樂');
-        else if (r > 0.85) launchManual('heart');
-        else launchManual('random');
-    }, 800); 
-}
-
-function updateCountdown() {
+const targetDate = new Date(new Date().getFullYear()+1, 0, 1);
+setInterval(() => {
     const now = new Date();
     const diff = targetDate - now;
-    if (diff <= 0) {
-        countdownEl.innerText = "2026 HAPPY NEW YEAR";
-        startAutoFire();
-        return;
-    }
-    const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
-    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
-    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+    if (diff <= 0) { countdownEl.innerText = "2026"; return; }
+    const h = String(Math.floor(diff/3600000)).padStart(2,'0');
+    const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+    const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
     countdownEl.innerText = `${h}:${m}:${s}`;
-}
-setInterval(updateCountdown, 1000);
+}, 1000);
 
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight); composer.setSize(window.innerWidth, window.innerHeight);
     bloomPass.resolution.set(window.innerWidth, window.innerHeight);
 });
-
 </script>
 </body>
 </html>
