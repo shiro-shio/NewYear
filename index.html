@@ -1,212 +1,271 @@
-        <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 
 <head>
-        <meta charset="UTF-8">
-        <title>2025 3D 跨年煙火秀</title>
-        <script src="https://unpkg.com/fireworks-js@2.x/dist/index.umd.js"></script>
-        <style>
-                :root {
-                        --bg: #000;
-                        --text: #fff;
-                        --panel-bg: rgba(255, 255, 255, 0.1);
-                }
+    <meta charset="UTF-8">
+    <title>2025 3D 跨年煙火秀</title>
 
-                body.light {
-                        --bg: #f0f0f0;
-                        --text: #000;
-                        --panel-bg: rgba(0, 0, 0, 0.1);
-                }
+    <!-- fireworks-js（2D 粒子背景） -->
+    <script src="https://unpkg.com/fireworks-js@2.x/dist/index.umd.js"></script>
 
-                body,
-                html {
-                        margin: 0;
-                        padding: 0;
-                        height: 100%;
-                        overflow: hidden;
-                        background: var(--bg);
-                        color: var(--text);
-                        font-family: sans-serif;
-                        transition: 0.3s;
-                }
+    <!-- Three.js（3D 煙火） -->
+    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
 
-                #fireworks-container {
-                        position: fixed;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        z-index: 1;
-                }
+    <style>
+        :root {
+            --bg: #000;
+            --text: #fff;
+            --panel-bg: rgba(255, 255, 255, 0.1);
+        }
 
-                #ui-layer {
-                        position: relative;
-                        z-index: 10;
-                        padding: 20px;
-                        pointer-events: none;
-                        height: 100%;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: space-between;
-                }
+        body.light {
+            --bg: #f0f0f0;
+            --text: #000;
+            --panel-bg: rgba(0, 0, 0, 0.1);
+        }
 
-                .panel {
-                        background: var(--panel-bg);
-                        backdrop-filter: blur(10px);
-                        padding: 15px;
-                        border-radius: 12px;
-                        pointer-events: auto;
-                        width: fit-content;
-                }
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: sans-serif;
+        }
 
-                #countdown {
-                        font-size: 3rem;
-                        font-weight: bold;
-                        text-align: center;
-                        margin-top: 50px;
-                }
+        #fireworks-container {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+        }
 
-                .hidden {
-                        display: none !important;
-                }
+        #ui-layer {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            padding: 20px;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
 
-                .controls {
-                        display: grid;
-                        gap: 10px;
-                }
+        .panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 12px;
+            pointer-events: auto;
+        }
 
-                button {
-                        cursor: pointer;
-                        padding: 5px 10px;
-                }
-        </style>
+        #countdown {
+            font-size: 3rem;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        button {
+            cursor: pointer;
+        }
+    </style>
 </head>
 
 <body class="dark">
-        <div id="fireworks-container"></div>
 
-        <div id="ui-layer">
-                <div id="countdown">00:00:00</div>
+    <div id="fireworks-container"></div>
 
-                <div class="panel" id="main-panel">
-                        <div class="controls">
-                                <div>
-                                        <button onclick="toggleTheme()">切換黑/白底</button>
-                                        <button onclick="toggleUI()">隱藏介面 (H)</button>
-                                        <button onclick="manualLaunch()">手動放煙火</button>
-                                </div>
+    <div id="ui-layer">
+        <div id="countdown">00:00:00</div>
 
-                                <div>
-                                        時區: <select id="timezone" onchange="updateTime()"></select>
-                                </div>
+        <div class="panel" id="main-panel">
+            <button onclick="toggleTheme()">切換黑 / 白底</button>
+            <button onclick="toggleUI()">隱藏介面 (H)</button>
+            <button onclick="manualLaunch()">手動放煙火</button>
+            <br><br>
 
-                                <div>
-                                        造型選擇:
-                                        <label><input type="checkbox" class="shape" value="circle" checked> 圓形</label>
-                                        <label><input type="checkbox" class="shape" value="explosion" checked>
-                                                爆炸</label>
-                                        <label><input type="checkbox" class="shape" value="star"> 星形</label>
-                                </div>
+            時區：
+            <select id="timezone"></select>
+            <br><br>
 
-                                <div>
-                                        自動持續時間 (秒):
-                                        <input type="number" id="duration" value="10" min="1" style="width: 50px;">
-                                </div>
-                        </div>
-                </div>
+            自動煙火秒數：
+            <input type="number" id="duration" value="10" min="1" style="width:60px;">
         </div>
-        <script>
-                const container = document.getElementById('fireworks-container');
-                const fireworks = new Fireworks.default(container, {
-                        autoresize: true,
-                        opacity: 0.5,
-                        acceleration: 1.05,
-                        friction: 0.97,
-                        gravity: 1.5,
-                        particles: 50,
-                        traceLength: 3,
-                        flicker: true,
-                        intensity: 30,
-                        explosion: 5
-                });
+    </div>
 
-                let autoLaunchTimer = null;
+    <script>
+        /**********************
+         * fireworks-js 初始化
+         **********************/
+        const fwContainer = document.getElementById("fireworks-container");
+        const fireworks = new Fireworks.default(fwContainer, {
+            autoresize: true,
+            opacity: 0.5,
+            acceleration: 1.05,
+            friction: 0.97,
+            gravity: 1.5,
+            particles: 80,
+            traceLength: 3,
+            flicker: true,
+            intensity: 30
+        });
 
-                // 功能 1: 黑白切換
-                function toggleTheme() {
-                        document.body.classList.toggle('light');
+        /**********************
+         * Three.js 3D 煙火
+         **********************/
+        let scene, camera, renderer;
+        let fireworks3D = [];
+
+        function initThree() {
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.z = 60;
+
+            renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.domElement.style.position = "fixed";
+            renderer.domElement.style.inset = 0;
+            renderer.domElement.style.zIndex = 2;
+
+            document.body.appendChild(renderer.domElement);
+            animateThree();
+        }
+
+        function create3DFirework(type) {
+            let geometry;
+
+            // 不同幾何造型
+            if (type === "heart") {
+                geometry = new THREE.TorusKnotGeometry(6, 2, 100, 16);
+            } else if (type === "star") {
+                geometry = new THREE.IcosahedronGeometry(6);
+            } else {
+                geometry = new THREE.SphereGeometry(6, 32, 32);
+            }
+
+            const material = new THREE.PointsMaterial({
+                color: new THREE.Color(`hsl(${Math.random() * 360},100%,60%)`),
+                size: 0.6,
+                transparent: true
+            });
+
+            const mesh = new THREE.Points(geometry, material);
+            mesh.position.set(
+                (Math.random() - 0.5) * 40,
+                (Math.random() - 0.5) * 30,
+                -20
+            );
+
+            scene.add(mesh);
+            fireworks3D.push({ mesh, life: 120 });
+        }
+
+        function animateThree() {
+            requestAnimationFrame(animateThree);
+
+            fireworks3D.forEach((fw, i) => {
+                fw.mesh.rotation.x += 0.01;
+                fw.mesh.rotation.y += 0.02;
+                fw.life--;
+
+                if (fw.life <= 0) {
+                    scene.remove(fw.mesh);
+                    fireworks3D.splice(i, 1);
                 }
+            });
 
-                // 功能 5: 隱藏介面
-                function toggleUI() {
-                        document.getElementById('main-panel').classList.toggle('hidden');
-                        document.getElementById('countdown').classList.toggle('hidden');
-                }
+            renderer.render(scene, camera);
+        }
 
-                // 功能 2 & 4: 倒數與時區
-                function populateTimezones() {
-                        const sel = document.getElementById('timezone');
-                        const zones = ["Asia/Taipei", "UTC", "America/New_York", "Europe/London", "Asia/Tokyo"];
-                        zones.forEach(z => {
-                                let opt = new Option(z, z);
-                                sel.add(opt);
-                        });
-                }
+        /**********************
+         * 倒數計時（修正版）
+         **********************/
+        function getNowTZ(tz) {
+            return new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+        }
 
-                function updateTime() {
-                        const tz = document.getElementById('timezone').value;
-                        const now = new Date(new Intl.DateTimeFormat('en-US', { timeZone: tz }).format(new Date()));
-                        const nextYear = now.getFullYear() + 1;
-                        const target = new Date(nextYear, 0, 1, 0, 0, 0);
+        function updateTime() {
+            const tz = timezone.value;
+            const now = getNowTZ(tz);
+            const target = new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0);
+            const diff = target - now;
 
-                        const diff = target - now;
+            if (diff <= 0) {
+                countdown.innerText = "🎆 HAPPY NEW YEAR 🎆";
+                startAutoFireworks();
+                return;
+            }
 
-                        if (diff <= 0) {
-                                startAutoFireworks(); // 跨年觸發
-                                document.getElementById('countdown').innerText = "HAPPY NEW YEAR!";
-                        } else {
-                                const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
-                                const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-                                const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
-                                document.getElementById('countdown').innerText = `${h}:${m}:${s}`;
-                        }
-                }
+            const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
+            const m = String(Math.floor(diff % 3600000 / 60000)).padStart(2, "0");
+            const s = String(Math.floor(diff % 60000 / 1000)).padStart(2, "0");
 
-                // 功能 3 & 6: 手動釋放與造型
-                function manualLaunch() {
-                        const activeShapes = Array.from(document.querySelectorAll('.shape:checked')).map(el => el.value);
-                        if (activeShapes.length === 0) return;
+            countdown.innerText = `${h}:${m}:${s}`;
+        }
 
-                        // 隨機選一個勾選的形狀
-                        const shape = activeShapes[Math.floor(Math.random() * activeShapes.length)];
-                        fireworks.launch(1);
-                        // 註：fireworks-js 主要是粒子流，如需精確文字煙火建議搭配 Canvas Text API
-                }
+        /**********************
+         * UI / 操作
+         **********************/
+        function toggleTheme() {
+            document.body.classList.toggle("light");
+        }
 
-                // 功能 7: 自動放煙火持續時間
-                function startAutoFireworks() {
-                        if (fireworks.isRunning) return;
-                        const duration = document.getElementById('duration').value * 1000;
-                        fireworks.start();
-                        setTimeout(() => fireworks.stop(), duration);
-                }
+        function toggleUI() {
+            mainPanel.classList.toggle("hidden");
+            countdown.classList.toggle("hidden");
+        }
 
-                // 功能 8: 文字煙火簡易實現
-                // 注意：文字煙火通常需要特定的粒子路徑庫，此處以 Alert 或 Overlay 模擬
-                function showTextFirework(text) {
-                        const div = document.createElement('div');
-                        div.innerText = text;
-                        div.style.cssText = `position:absolute; top:40%; left:50%; transform:translate(-50%,-50%); 
-                    font-size:5rem; color:gold; text-shadow: 0 0 20px orange; z-index:5;`;
-                        document.body.appendChild(div);
-                        setTimeout(() => div.remove(), 3000);
-                }
+        function manualLaunch() {
+            fireworks.launch(2);
+            create3DFirework(["sphere", "heart", "star"][Math.floor(Math.random() * 3)]);
+        }
 
-                // 初始化
-                populateTimezones();
-                setInterval(updateTime, 1000);
-                window.addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'h') toggleUI(); });
-        </script>
+        function startAutoFireworks() {
+            const duration = durationInput.value * 1000;
+            fireworks.start();
+
+            const timer = setInterval(() => {
+                create3DFirework(["sphere", "heart", "star"][Math.floor(Math.random() * 3)]);
+            }, 300);
+
+            setTimeout(() => {
+                fireworks.stop();
+                clearInterval(timer);
+            }, duration);
+        }
+
+        /**********************
+         * 初始化
+         **********************/
+        const timezone = document.getElementById("timezone");
+        const countdown = document.getElementById("countdown");
+        const mainPanel = document.getElementById("main-panel");
+        const durationInput = document.getElementById("duration");
+
+        ["Asia/Taipei", "UTC", "Asia/Tokyo", "America/New_York"].forEach(z => {
+            timezone.add(new Option(z, z));
+        });
+        timezone.value = "Asia/Taipei";
+
+        initThree();
+        setInterval(updateTime, 1000);
+
+        window.addEventListener("keydown", e => {
+            if (e.key.toLowerCase() === "h") toggleUI();
+        });
+    </script>
+
 </body>
-
 </html>
