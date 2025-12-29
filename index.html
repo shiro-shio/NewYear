@@ -59,22 +59,24 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 // 1. 場景與後處理設定 (調整清晰度)
 // ==========================================
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x050505, 0.0015); // 稍微減少霧氣
+scene.fog = null //new THREE.FogExp2(0x050505, 0.0015); // 稍微減少霧氣
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
 // 將相機拉遠一點，以容納更廣的範圍
 camera.position.set(0, 0, 160);
 camera.lookAt(0, 40, 0);
 
-const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", alpha: true, premultipliedAlpha: false});
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // 稍微降低像素比以提高效能
 renderer.toneMapping = THREE.ACESFilmicToneMapping; // 改用更有電影感的 Tone Mapping
 renderer.toneMappingExposure = 1.2;
+renderer.setClearColor(0x000000, 0);
 document.body.appendChild(renderer.domElement);
 
 const renderScene = new RenderPass(scene, camera);
-
+renderScene.clearColor = new THREE.Color(0x000000);
+renderScene.clearAlpha = 0;
 // --- 關鍵修改：調整 Bloom 參數以獲得清晰感 ---
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
 bloomPass.strength = 2.2;   // 強度維持較高
