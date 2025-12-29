@@ -1,271 +1,293 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-
 <head>
-    <meta charset="UTF-8">
-    <title>2025 3D 跨年煙火秀</title>
+<meta charset="UTF-8">
+<title>2025 Anime Style Fireworks</title>
 
-    <!-- fireworks-js（2D 粒子背景） -->
-    <script src="https://unpkg.com/fireworks-js@2.x/dist/index.umd.js"></script>
+<!-- 2D 粒子煙火 -->
+<script src="https://unpkg.com/fireworks-js@2.x/dist/index.umd.js"></script>
 
-    <!-- Three.js（3D 煙火） -->
-    <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+<!-- Three.js -->
+<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
 
-    <style>
-        :root {
-            --bg: #000;
-            --text: #fff;
-            --panel-bg: rgba(255, 255, 255, 0.1);
-        }
+<style>
+/* ========================
+   全域樣式
+======================== */
+:root {
+    --bg: #000;
+    --text: #fff;
+    --panel: rgba(255,255,255,0.12);
+}
+body.light {
+    --bg: #f0f0f0;
+    --text: #000;
+    --panel: rgba(0,0,0,0.15);
+}
+html,body {
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:var(--bg);
+    color:var(--text);
+    font-family:sans-serif;
+}
 
-        body.light {
-            --bg: #f0f0f0;
-            --text: #000;
-            --panel-bg: rgba(0, 0, 0, 0.1);
-        }
-
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: var(--bg);
-            color: var(--text);
-            font-family: sans-serif;
-        }
-
-        #fireworks-container {
-            position: fixed;
-            inset: 0;
-            z-index: 1;
-        }
-
-        #ui-layer {
-            position: relative;
-            z-index: 10;
-            height: 100%;
-            padding: 20px;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .panel {
-            background: var(--panel-bg);
-            backdrop-filter: blur(10px);
-            padding: 15px;
-            border-radius: 12px;
-            pointer-events: auto;
-        }
-
-        #countdown {
-            font-size: 3rem;
-            text-align: center;
-            margin-top: 40px;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        button {
-            cursor: pointer;
-        }
-    </style>
+/* ========================
+   Layer 分層
+======================== */
+#fw2d {
+    position:fixed;
+    inset:0;
+    z-index:1;
+}
+#ui {
+    position:relative;
+    z-index:10;
+    padding:20px;
+}
+.panel {
+    background:var(--panel);
+    backdrop-filter: blur(10px);
+    padding:15px;
+    border-radius:12px;
+}
+#countdown {
+    text-align:center;
+    font-size:3rem;
+    margin-bottom:20px;
+}
+.hidden { display:none; }
+button { cursor:pointer; }
+</style>
 </head>
 
-<body class="dark">
+<body>
 
-    <div id="fireworks-container"></div>
+<!-- ========================
+     2D Fireworks 容器
+======================== -->
+<div id="fw2d"></div>
 
-    <div id="ui-layer">
-        <div id="countdown">00:00:00</div>
+<!-- ========================
+     UI
+======================== -->
+<div id="ui">
+    <div id="countdown">00:00:00</div>
 
-        <div class="panel" id="main-panel">
-            <button onclick="toggleTheme()">切換黑 / 白底</button>
-            <button onclick="toggleUI()">隱藏介面 (H)</button>
-            <button onclick="manualLaunch()">手動放煙火</button>
-            <br><br>
+    <div class="panel" id="panel">
+        <button onclick="toggleTheme()">黑 / 白切換</button>
+        <button onclick="toggleUI()">隱藏 UI (H)</button>
+        <button onclick="manualLaunch()">手動煙火</button>
+        <br><br>
 
-            時區：
-            <select id="timezone"></select>
-            <br><br>
+        時區：
+        <select id="timezone"></select>
+        <br><br>
 
-            自動煙火秒數：
-            <input type="number" id="duration" value="10" min="1" style="width:60px;">
-        </div>
+        自動煙火秒數：
+        <input type="number" id="duration" value="10" min="1" style="width:60px;">
     </div>
+</div>
 
-    <script>
-        /**********************
-         * fireworks-js 初始化
-         **********************/
-        const fwContainer = document.getElementById("fireworks-container");
-        const fireworks = new Fireworks.default(fwContainer, {
-            autoresize: true,
-            opacity: 0.5,
-            acceleration: 1.05,
-            friction: 0.97,
-            gravity: 1.5,
-            particles: 80,
-            traceLength: 3,
-            flicker: true,
-            intensity: 30
-        });
+<script>
+/* =====================================================
+   【模組 1】fireworks-js（2D 背景煙火）
+===================================================== */
+const fw2d = new Fireworks.default(
+    document.getElementById("fw2d"),
+    {
+        opacity:0.5,
+        acceleration:1.05,
+        friction:0.97,
+        gravity:1.5,
+        particles:80,
+        intensity:30,
+        flicker:true
+    }
+);
 
-        /**********************
-         * Three.js 3D 煙火
-         **********************/
-        let scene, camera, renderer;
-        let fireworks3D = [];
+/* =====================================================
+   【模組 2】Three.js 動漫風煙火（核心）
+===================================================== */
+let scene, camera, renderer;
+let animeFireworks = [];
 
-        function initThree() {
-            scene = new THREE.Scene();
+/* 初始化 Three.js */
+function initAnimeFireworks(){
+    scene = new THREE.Scene();
 
-            camera = new THREE.PerspectiveCamera(
-                75,
-                window.innerWidth / window.innerHeight,
-                0.1,
-                1000
-            );
-            camera.position.z = 60;
+    camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth/window.innerHeight,
+        1,
+        500
+    );
+    camera.position.z = 120;
 
-            renderer = new THREE.WebGLRenderer({ alpha: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.domElement.style.position = "fixed";
-            renderer.domElement.style.inset = 0;
-            renderer.domElement.style.zIndex = 2;
+    renderer = new THREE.WebGLRenderer({
+        alpha:true,
+        antialias:true
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.domElement.style.position = "fixed";
+    renderer.domElement.style.inset = 0;
+    renderer.domElement.style.zIndex = 3;
+    document.body.appendChild(renderer.domElement);
 
-            document.body.appendChild(renderer.domElement);
-            animateThree();
+    window.addEventListener("resize", ()=>{
+        camera.aspect = window.innerWidth/window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animateAnimeFireworks();
+}
+
+/* 建立一發動漫煙火 */
+function createAnimeFirework(){
+    const count = 700;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(count*3);
+    const vel = new Float32Array(count*3);
+    const col = new Float32Array(count*3);
+
+    const hue = Math.random()*360;
+
+    for(let i=0;i<count;i++){
+        const i3=i*3;
+        pos[i3]=pos[i3+1]=pos[i3+2]=0;
+
+        const theta=Math.random()*Math.PI*2;
+        const phi=Math.acos(Math.random()*2-1);
+        const speed=Math.random()*2+2;
+
+        vel[i3]=Math.sin(phi)*Math.cos(theta)*speed;
+        vel[i3+1]=Math.cos(phi)*speed;
+        vel[i3+2]=Math.sin(phi)*Math.sin(theta)*speed;
+
+        const c=new THREE.Color(`hsl(${hue+Math.random()*40},100%,70%)`);
+        col[i3]=c.r; col[i3+1]=c.g; col[i3+2]=c.b;
+    }
+
+    geo.setAttribute("position", new THREE.BufferAttribute(pos,3));
+    geo.setAttribute("velocity", new THREE.BufferAttribute(vel,3));
+    geo.setAttribute("color", new THREE.BufferAttribute(col,3));
+
+    const mat = new THREE.PointsMaterial({
+        size:1.8,
+        vertexColors:true,
+        transparent:true,
+        opacity:1,
+        blending:THREE.AdditiveBlending,
+        depthWrite:false
+    });
+
+    const points = new THREE.Points(geo,mat);
+    points.position.set(
+        (Math.random()-0.5)*80,
+        (Math.random()-0.5)*40,
+        (Math.random()-0.5)*40
+    );
+
+    scene.add(points);
+    animeFireworks.push({mesh:points, life:120});
+}
+
+/* Three.js 動畫循環 */
+function animateAnimeFireworks(){
+    requestAnimationFrame(animateAnimeFireworks);
+
+    animeFireworks.forEach((fw,i)=>{
+        const p=fw.mesh.geometry.attributes.position.array;
+        const v=fw.mesh.geometry.attributes.velocity.array;
+
+        for(let j=0;j<p.length;j+=3){
+            p[j]+=v[j];
+            p[j+1]+=v[j+1];
+            p[j+2]+=v[j+2];
+            v[j+1]-=0.02;
+            v[j]*=0.985; v[j+1]*=0.985; v[j+2]*=0.985;
         }
 
-        function create3DFirework(type) {
-            let geometry;
+        fw.mesh.geometry.attributes.position.needsUpdate=true;
+        fw.mesh.material.opacity-=0.008;
+        fw.life--;
 
-            // 不同幾何造型
-            if (type === "heart") {
-                geometry = new THREE.TorusKnotGeometry(6, 2, 100, 16);
-            } else if (type === "star") {
-                geometry = new THREE.IcosahedronGeometry(6);
-            } else {
-                geometry = new THREE.SphereGeometry(6, 32, 32);
-            }
-
-            const material = new THREE.PointsMaterial({
-                color: new THREE.Color(`hsl(${Math.random() * 360},100%,60%)`),
-                size: 0.6,
-                transparent: true
-            });
-
-            const mesh = new THREE.Points(geometry, material);
-            mesh.position.set(
-                (Math.random() - 0.5) * 40,
-                (Math.random() - 0.5) * 30,
-                -20
-            );
-
-            scene.add(mesh);
-            fireworks3D.push({ mesh, life: 120 });
+        if(fw.life<=0){
+            scene.remove(fw.mesh);
+            animeFireworks.splice(i,1);
         }
+    });
 
-        function animateThree() {
-            requestAnimationFrame(animateThree);
+    renderer.render(scene,camera);
+}
 
-            fireworks3D.forEach((fw, i) => {
-                fw.mesh.rotation.x += 0.01;
-                fw.mesh.rotation.y += 0.02;
-                fw.life--;
+/* =====================================================
+   【模組 3】倒數計時（時區安全）
+===================================================== */
+function nowInTZ(tz){
+    return new Date(new Date().toLocaleString("en-US",{timeZone:tz}));
+}
 
-                if (fw.life <= 0) {
-                    scene.remove(fw.mesh);
-                    fireworks3D.splice(i, 1);
-                }
-            });
+function updateTime(){
+    const tz=timezone.value;
+    const now=nowInTZ(tz);
+    const target=new Date(now.getFullYear()+1,0,1);
+    const diff=target-now;
 
-            renderer.render(scene, camera);
-        }
+    if(diff<=0){
+        countdown.innerText="🎆 HAPPY NEW YEAR 🎆";
+        startAutoFireworks();
+        return;
+    }
 
-        /**********************
-         * 倒數計時（修正版）
-         **********************/
-        function getNowTZ(tz) {
-            return new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
-        }
+    const h=String(diff/3600000|0).padStart(2,"0");
+    const m=String(diff%3600000/60000|0).padStart(2,"0");
+    const s=String(diff%60000/1000|0).padStart(2,"0");
+    countdown.innerText=`${h}:${m}:${s}`;
+}
 
-        function updateTime() {
-            const tz = timezone.value;
-            const now = getNowTZ(tz);
-            const target = new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0);
-            const diff = target - now;
+/* =====================================================
+   【模組 4】操作整合入口
+===================================================== */
+function manualLaunch(){
+    fw2d.launch(2);
+    createAnimeFirework();
+}
 
-            if (diff <= 0) {
-                countdown.innerText = "🎆 HAPPY NEW YEAR 🎆";
-                startAutoFireworks();
-                return;
-            }
+function startAutoFireworks(){
+    const ms=duration.value*1000;
+    fw2d.start();
+    const t=setInterval(createAnimeFirework,400);
+    setTimeout(()=>{
+        fw2d.stop();
+        clearInterval(t);
+    },ms);
+}
 
-            const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
-            const m = String(Math.floor(diff % 3600000 / 60000)).padStart(2, "0");
-            const s = String(Math.floor(diff % 60000 / 1000)).padStart(2, "0");
+function toggleTheme(){ document.body.classList.toggle("light"); }
+function toggleUI(){
+    panel.classList.toggle("hidden");
+    countdown.classList.toggle("hidden");
+}
 
-            countdown.innerText = `${h}:${m}:${s}`;
-        }
+/* =====================================================
+   初始化
+===================================================== */
+["Asia/Taipei","UTC","Asia/Tokyo","America/New_York"]
+.forEach(z=>timezone.add(new Option(z,z)));
+timezone.value="Asia/Taipei";
 
-        /**********************
-         * UI / 操作
-         **********************/
-        function toggleTheme() {
-            document.body.classList.toggle("light");
-        }
+initAnimeFireworks();
+setInterval(updateTime,1000);
 
-        function toggleUI() {
-            mainPanel.classList.toggle("hidden");
-            countdown.classList.toggle("hidden");
-        }
-
-        function manualLaunch() {
-            fireworks.launch(2);
-            create3DFirework(["sphere", "heart", "star"][Math.floor(Math.random() * 3)]);
-        }
-
-        function startAutoFireworks() {
-            const duration = durationInput.value * 1000;
-            fireworks.start();
-
-            const timer = setInterval(() => {
-                create3DFirework(["sphere", "heart", "star"][Math.floor(Math.random() * 3)]);
-            }, 300);
-
-            setTimeout(() => {
-                fireworks.stop();
-                clearInterval(timer);
-            }, duration);
-        }
-
-        /**********************
-         * 初始化
-         **********************/
-        const timezone = document.getElementById("timezone");
-        const countdown = document.getElementById("countdown");
-        const mainPanel = document.getElementById("main-panel");
-        const durationInput = document.getElementById("duration");
-
-        ["Asia/Taipei", "UTC", "Asia/Tokyo", "America/New_York"].forEach(z => {
-            timezone.add(new Option(z, z));
-        });
-        timezone.value = "Asia/Taipei";
-
-        initThree();
-        setInterval(updateTime, 1000);
-
-        window.addEventListener("keydown", e => {
-            if (e.key.toLowerCase() === "h") toggleUI();
-        });
-    </script>
+window.addEventListener("keydown",e=>{
+    if(e.key.toLowerCase()==="h") toggleUI();
+});
+</script>
 
 </body>
 </html>
