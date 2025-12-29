@@ -98,7 +98,7 @@ function createGlowTexture() {
     // 調整漸層讓中心更實心，邊緣衰減更快
     gradient.addColorStop(0, 'rgba(255,255,255,1)');
     gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');
-    gradient.addColorStop(0.5, 'rgba(255,255,255,0.2)'); 
+    gradient.addColorStop(0.5, 'rgba(255,255,255,0)'); 
     gradient.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = gradient;
     ctx.fillRect(0,0,64,64);
@@ -237,7 +237,7 @@ class Firework {
             size: 3.5,
             map: particleTexture,
             transparent: true,
-            blending: THREE.AdditiveBlending,
+            blending: THREE.NormalBlending,
             depthWrite: false
         });
         this.rocket = new THREE.Points(geo, mat);
@@ -452,14 +452,15 @@ function updateGlobalTrails() {
 // ==========================================
 function animate() {
     requestAnimationFrame(animate);
-    
     for (let i = fireworks.length - 1; i >= 0; i--) {
         fireworks[i].update();
         if (fireworks[i].isDead) fireworks.splice(i, 1);
     }
     
     updateGlobalTrails();
-    composer.render();
+    renderer.clear();
+    renderer.render(scene, camera);
+    //composer.render();
 }
 animate();
 
