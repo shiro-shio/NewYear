@@ -84,6 +84,7 @@
 <div id="ui-container">
     <div id="countdown">00:00:00</div>
     <div id="controls">
+        <button onclick="AutoFire()">🎉 自動發射</button>
         <button onclick="launchManual('random')">🎉 隨機發射</button>
         <button onclick="launchManual('heart')">🎉 愛心</button>
         <button onclick="launchManual('ring')">🎉 土星環</button>
@@ -461,6 +462,8 @@ function startAutoFire() {
     }, 800); 
 }
 
+window.AutoFire = () => {startAutoFire();}
+    
 function updateCountdown() {
     const now = new Date();
     const diff = targetDate - now;// - 1000*47*60*60
